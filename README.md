@@ -19,12 +19,14 @@ Ce projet a pour but de créer une application web qui permet à l’utilisateur
 
 ### Structure des fichiers
 
+```
 /daily-planner/
 │
 ├── index.html → Structure HTML principale
 ├── style.css → Feuille de styles pour le design
 ├── script.js → Logique fonctionnelle (JavaScript)
 └── assets/ → Images, icônes météo, illustrations
+```
 
 ## 3. Diagrammes PlantUML
 
