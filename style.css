@@ -44,6 +44,14 @@ header {
   gap: 10px;
 }
 
+.date-time input[type="date"] {
+  border: none;
+  background: transparent;
+  font-size: 16px;
+  outline: none;
+  font-weight: bold;
+}
+
 table {
   border-collapse: collapse;
 }
@@ -91,18 +99,35 @@ th {
   padding: 20px;
 }
 
-.main-img1 {
-  position: absolute;
-  margin-right: 1050px;
-  margin-top: 75px;
-  z-index: 10;
+body {
+  margin: 0;
+  height: 100vh;
+  position: relative;
 }
 
-.main-img2 {
+.papillon-container {
   position: absolute;
-  margin-left: 1050px;
-  margin-top: 75px;
   z-index: 10;
+  pointer-events: none;
+  transition: transform 12s ease-in-out;
+}
+
+.papillon {
+  width: 50px;
+  height: 50px;
+  animation: flapWings 0.6s infinite ease-in-out;
+}
+
+@keyframes flapWings {
+  0% {
+    transform: scale(1) rotate(0deg);
+  }
+  50% {
+    transform: scale(1.1, 0.9) rotate(5deg);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
 }
 
 .left-column {
@@ -145,6 +170,12 @@ th {
   outline: none;
 }
 
+.to-do-list input[type="checkbox"] {
+  width: 17px;
+  height: 17px;
+  cursor: pointer;
+}
+
 .schedule {
   display: flex;
   flex-direction: column;
@@ -167,6 +198,7 @@ th {
   padding: 5px;
   outline: none;
 }
+
 .schedule-title {
   text-align: center;
   margin-bottom: 10px;
@@ -192,6 +224,11 @@ th {
   outline: none;
   background-color: rgb(240, 204, 191);
   padding-left: 10px;
+}
+.goals-list input[type="radio"] {
+  width: 17px;
+  height: 17px;
+  cursor: pointer;
 }
 
 .note {

@@ -58,6 +58,14 @@ const getDay = (date) => {
   return day - 1;
 };
 
+const calendarElem = document.getElementById("calendar");
+if (calendarElem) {
+  const now = new Date();
+  createCalendar(calendarElem, now.getFullYear(), now.getMonth() + 1);
+} else {
+  console.error("Calendar element not found");
+}
+
 const apiKey = "YOUR_API_KEY";
 const city = "Mons";
 if (!apiKey) {
@@ -93,10 +101,35 @@ if (weatherDiv) {
     });
 }
 
-const calendarElem = document.getElementById("calendar");
-if (calendarElem) {
-  const now = new Date();
-  createCalendar(calendarElem, now.getFullYear(), now.getMonth() + 1);
-} else {
-  console.error("Calendar element not found");
+function movePapillon(container) {
+  const screenWidth = window.innerWidth;
+  const screenHeight = window.innerHeight;
+
+  const containerWidth = container.offsetWidth;
+  const containerHeight = container.offsetHeight;
+
+  const maxX = screenWidth - containerWidth - 20;
+  const maxY = screenHeight - containerHeight - 20;
+
+  const x = Math.random() * maxX;
+  const y = Math.random() * maxY;
+
+  container.style.transform = `translate(${x}px, ${y}px)`;
 }
+
+function startFlight(container, interval) {
+  movePapillon(container);
+  setInterval(() => movePapillon(container), interval);
+}
+
+const container1 = document.getElementById("papillon1");
+const container2 = document.getElementById("papillon2");
+const container3 = document.getElementById("papillon3");
+
+container1.querySelector(".papillon").style.animationDuration = "0.7s";
+container2.querySelector(".papillon").style.animationDuration = "0.5s";
+container3.querySelector(".papillon").style.animationDuration = "0.6s";
+
+startFlight(container1, 12000);
+startFlight(container2, 14000);
+startFlight(container3, 16000);
