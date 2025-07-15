@@ -58,9 +58,44 @@ const getDay = (date) => {
   return day - 1;
 };
 
+const apiKey = "YOUR_API_KEY";
+const city = "Mons";
+if (!apiKey) {
+  console.error("Weather API key is not set.");
+}
+const weatherDiv = document.getElementById("weather");
+
+if (weatherDiv) {
+  fetch(
+    `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}&units=metric`
+  )
+    .then((response) => response.json())
+    .then((data) => {
+      if (data.weather) {
+        const weatherType = data.weather[0].main.toLowerCase();
+        let icon = "assets/weather.png";
+        if (weatherType.includes("cloud")) icon = "assets/cloud.png";
+        else if (weatherType.includes("rain")) icon = "assets/rain.png";
+        else if (weatherType.includes("thunder"))
+          icon = "assets/thunderstorm.png";
+        else if (weatherType.includes("sun") || weatherType.includes("clear"))
+          icon = "assets/sun.png";
+        else if (weatherType.includes("hail")) icon = "assets/hail.png";
+
+        weatherDiv.innerHTML = ` Weather in ${city}: ${data.weather[0].main} , ${data.main.temp}°C <img src="${icon}" alt="${data.weather[0].main}" style="height:26px;vertical-align:middle;">`;
+      } else {
+        weatherDiv.textContent = "Weather data not available.";
+      }
+    })
+    .catch((error) => {
+      weatherDiv.textContent = "Error fetching weather.";
+      console.error(error);
+    });
+}
+
 const calendarElem = document.getElementById("calendar");
 if (calendarElem) {
-  now = new Date();
+  const now = new Date();
   createCalendar(calendarElem, now.getFullYear(), now.getMonth() + 1);
 } else {
   console.error("Calendar element not found");
