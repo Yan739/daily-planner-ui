@@ -55,4 +55,4 @@ cd daily-planner
 
 ## 6. Auteur
 Projet réalisé par [Yann NGATEU]
-Dans le cadre d’un projet personnel ou scolaire.
+Dans le cadre d’un projet personnel.
