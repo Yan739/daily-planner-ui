@@ -55,7 +55,7 @@ Ce projet a pour but de créer une application web qui permet à l'utilisateur d
 ### Prérequis
 
 - Un navigateur web moderne (Chrome, Firefox, Safari, Edge)
-- Serveur web local (optionnel, pour éviter les problèmes CORS)
+- VS Code avec l'extension Live Server (recommandé)
 
 ### Installation locale
 
@@ -66,15 +66,11 @@ git clone https://github.com/Yan739/daily-planner.git
 # Accéder au dossier
 cd daily-planner
 
-# Ouvrir dans un navigateur
-# Option 1 : Double-cliquer sur index.html
-# Option 2 : Utiliser un serveur local (recommandé)
-python -m http.server 8000
-# ou
-npx serve .
+# Ouvrir dans VS Code
+code .
 ```
 
-L'application sera accessible à l'adresse `http://localhost:8000`
+Ensuite, utilisez Live Server pour lancer l'application (voir section "Développement" ci-dessous).
 
 ## Configuration
 
@@ -117,18 +113,14 @@ const WEATHER_API_URL = 'https://api.openweathermap.org/data/2.5/weather';
 4. **Consulter la météo** pour adapter vos activités
 5. **Prendre des notes** au fur et à mesure
 
-## Scripts disponibles
+## Développement
 
-```bash
-# Serveur de développement avec Python
-python -m http.server 8000
+Pour développer et tester l'application, utilisez l'extension **Live Server** de VS Code :
 
-# Serveur de développement avec Node.js
-npx serve .
-
-# Serveur de développement avec PHP
-php -S localhost:8000
-```
+1. Ouvrir le projet dans VS Code
+2. Clic droit sur `index.html`
+3. Sélectionner "Open with Live Server"
+4. L'application s'ouvrira automatiquement dans votre navigateur avec rechargement automatique
 
 ## Compatibilité
 
