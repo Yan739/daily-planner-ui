@@ -19,6 +19,7 @@ Ce projet a pour but de créer une application web qui permet à l’utilisateur
 
 ### Structure des fichiers
 
+---
 /daily-planner/
 │
 ├── index.html        → Structure HTML principale
