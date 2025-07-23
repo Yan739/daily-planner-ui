@@ -90,6 +90,41 @@ th {
   border-width: 0.5px;
 }
 
+.page-actions {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.page-actions #saveBtn {
+  background-color: #57bd82;
+}
+
+.page-actions button {
+  color: rgba(240, 247, 246, 0.99);
+  border: none;
+  padding: 8px 100px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.page-actions button:hover {
+  background-color: #357abd;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
+}
+
+.page-actions button:active {
+  transform: scale(0.98);
+  box-shadow: 0 3px 5px rgba(0, 0, 0, 0.1);
+}
+
 .main-content {
   display: flex;
   position: relative;
@@ -261,4 +296,12 @@ body {
     #fffaf0 29px,
     #ccc 30px
   );
+}
+
+footer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  background-color: rgb(233, 232, 228);
 }
