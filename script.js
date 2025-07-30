@@ -1,8 +1,99 @@
 // API configuration
 const API_BASE_URL = "http://localhost:3000";
+const USE_MOCK_API = false; // Set to true to use mock API
 
-// API request function
-const apiRequest = async (endpoint, options = {}) => {
+// Auto-save config
+const AUTO_SAVE_CONFIG = {
+  debounceDelay: 1000, // Delay before auto-save (ms)
+  retryAttempts: 3,
+  retryDelay: 1000,
+};
+
+// Mock storage to simulate a database
+class MockStorage {
+  constructor() {
+    this.data = {
+      tasks: JSON.parse(sessionStorage.getItem("mock_tasks") || "[]"),
+      goals: JSON.parse(sessionStorage.getItem("mock_goals") || "[]"),
+      schedules: JSON.parse(sessionStorage.getItem("mock_schedules") || "[]"),
+      notes: JSON.parse(sessionStorage.getItem("mock_notes") || "[]"),
+    };
+    this.idCounter = {
+      tasks: this.getMaxId("tasks") + 1,
+      goals: this.getMaxId("goals") + 1,
+      schedules: this.getMaxId("schedules") + 1,
+      notes: this.getMaxId("notes") + 1,
+    };
+  }
+
+  getMaxId(type) {
+    return this.data[type].length > 0
+      ? Math.max(...this.data[type].map((item) => item.id || 0))
+      : 0;
+  }
+
+  save(type) {
+    sessionStorage.setItem(`mock_${type}`, JSON.stringify(this.data[type]));
+  }
+
+  // GET /endpoint
+  async get(type) {
+    await this.simulateDelay();
+    return [...this.data[type]];
+  }
+
+  // POST /endpoint
+  async post(type, data) {
+    await this.simulateDelay();
+    const newItem = {
+      ...data,
+      id: this.idCounter[type]++,
+    };
+    this.data[type].push(newItem);
+    this.save(type);
+    return newItem;
+  }
+
+  // PUT /endpoint/:id
+  async put(type, id, data) {
+    await this.simulateDelay();
+    const index = this.data[type].findIndex((item) => item.id == id);
+    if (index !== -1) {
+      this.data[type][index] = { ...this.data[type][index], ...data };
+      this.save(type);
+      return this.data[type][index];
+    }
+    throw new Error("Item not found");
+  }
+
+  // DELETE /endpoint/:id
+  async delete(type, id) {
+    await this.simulateDelay();
+    const index = this.data[type].findIndex((item) => item.id == id);
+    if (index !== -1) {
+      const deleted = this.data[type].splice(index, 1)[0];
+      this.save(type);
+      return deleted;
+    }
+    throw new Error("Item not found");
+  }
+
+  simulateDelay() {
+    return new Promise((resolve) =>
+      setTimeout(resolve, 100 + Math.random() * 200)
+    );
+  }
+}
+
+// Global instance of mock storage
+const mockStorage = new MockStorage();
+
+// API request function with mock and retry support
+const apiRequest = async (endpoint, options = {}, retryCount = 0) => {
+  if (USE_MOCK_API) {
+    return mockApiRequest(endpoint, options);
+  }
+
   try {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       headers: {
@@ -18,12 +109,637 @@ const apiRequest = async (endpoint, options = {}) => {
 
     return await response.json();
   } catch (error) {
-    console.error("API request failed:", error);
+    console.error(`API request failed (attempt ${retryCount + 1}):`, error);
+
+    if (retryCount < AUTO_SAVE_CONFIG.retryAttempts) {
+      await new Promise((resolve) =>
+        setTimeout(resolve, AUTO_SAVE_CONFIG.retryDelay)
+      );
+      return apiRequest(endpoint, options, retryCount + 1);
+    }
+
     throw error;
   }
 };
 
-// Function to show the current time
+// Mock API for testing
+const mockApiRequest = async (endpoint, options = {}) => {
+  const method = options.method || "GET";
+  const body = options.body ? JSON.parse(options.body) : null;
+
+  // Parse endpoint
+  const parts = endpoint.split("/").filter((p) => p);
+  const type = parts[0];
+  const id = parts[1];
+
+  console.log(`[MOCK API] ${method} ${endpoint}`, body);
+
+  switch (method) {
+    case "GET":
+      return await mockStorage.get(type);
+    case "POST":
+      return await mockStorage.post(type, body);
+    case "PUT":
+      return await mockStorage.put(type, id, body);
+    case "DELETE":
+      return await mockStorage.delete(type, id);
+    default:
+      throw new Error(`Method ${method} not supported`);
+  }
+};
+
+// Debounce utility to avoid too many API calls
+const debounce = (func, wait) => {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+};
+
+// Status indicator for user
+class StatusManager {
+  constructor() {
+    this.createStatusIndicator();
+  }
+
+  createStatusIndicator() {
+    if (!document.getElementById("auto-save-status")) {
+      const statusDiv = document.createElement("div");
+      statusDiv.id = "auto-save-status";
+      statusDiv.style.cssText = `
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        padding: 8px 12px;
+        border-radius: 4px;
+        font-size: 12px;
+        z-index: 1000;
+        transition: all 0.3s ease;
+        display: none;
+      `;
+      document.body.appendChild(statusDiv);
+    }
+  }
+
+  showStatus(message, type = "info") {
+    const statusDiv = document.getElementById("auto-save-status");
+    const colors = {
+      info: "#2196F3",
+      success: "#4CAF50",
+      error: "#f44336",
+      warning: "#FF9800",
+    };
+
+    statusDiv.textContent = message;
+    statusDiv.style.backgroundColor = colors[type];
+    statusDiv.style.color = "white";
+    statusDiv.style.display = "block";
+
+    if (type === "success") {
+      setTimeout(() => {
+        statusDiv.style.display = "none";
+      }, 2000);
+    }
+  }
+
+  hideStatus() {
+    const statusDiv = document.getElementById("auto-save-status");
+    statusDiv.style.display = "none";
+  }
+}
+
+// Main auto-save manager
+class AutoSaveManager {
+  constructor() {
+    this.statusManager = new StatusManager();
+    this.pendingOperations = new Map();
+    this.loadedData = {
+      tasks: new Map(),
+      goals: new Map(),
+      schedules: new Map(),
+      notes: new Map(),
+    };
+  }
+
+  // Load all data (tasks, goals, schedules, notes)
+  async loadAllData() {
+    try {
+      this.statusManager.showStatus("Loading data...", "info");
+      await Promise.all([
+        this.loadTasks(),
+        this.loadGoals(),
+        this.loadSchedules(),
+        this.loadNotes(),
+      ]);
+      this.statusManager.showStatus("Data loaded successfully", "success");
+      console.log("All data loaded successfully");
+    } catch (error) {
+      console.error("Error loading data:", error);
+      this.statusManager.showStatus("Load error", "error");
+      // Even on error, set up listeners so user can still type
+      this.setupAllListeners();
+    }
+  }
+
+  // Set up all listeners
+  setupAllListeners() {
+    this.setupTaskListeners();
+    this.setupGoalListeners();
+    this.setupScheduleListeners();
+    this.setupNoteListeners();
+  }
+
+  // Load tasks
+  async loadTasks() {
+    try {
+      const tasks = await apiRequest("/tasks");
+      const taskInputs = document.querySelectorAll(
+        '.to-do-list input[type="text"]'
+      );
+      const taskCheckboxes = document.querySelectorAll(
+        '.to-do-list input[type="checkbox"]'
+      );
+      this.loadedData.tasks.clear();
+      tasks.forEach((task, index) => {
+        if (index < taskInputs.length) {
+          taskInputs[index].value = task.title || "";
+          taskInputs[index].dataset.id = task.id;
+          taskCheckboxes[index].checked = task.isCompleted || false;
+          taskCheckboxes[index].dataset.id = task.id;
+          // Store in memory for comparison
+          this.loadedData.tasks.set(task.id.toString(), {
+            title: task.title || "",
+            completed: task.isCompleted || false,
+          });
+        }
+      });
+      this.setupTaskListeners();
+    } catch (error) {
+      console.error("Error loading tasks:", error);
+      this.setupTaskListeners();
+    }
+  }
+
+  // Load goals
+  async loadGoals() {
+    try {
+      const goals = await apiRequest("/goals");
+      const goalInputs = document.querySelectorAll(
+        '.goals-list input[type="text"]'
+      );
+      const goalRadios = document.querySelectorAll(
+        '.goals-list input[type="radio"]'
+      );
+      this.loadedData.goals.clear();
+      goals.forEach((goal, index) => {
+        if (index < goalInputs.length) {
+          goalInputs[index].value = goal.title || "";
+          goalInputs[index].dataset.id = goal.id;
+          goalRadios[index].checked = goal.isCompleted || false;
+          goalRadios[index].dataset.id = goal.id;
+          this.loadedData.goals.set(goal.id.toString(), {
+            title: goal.title || "",
+            completed: goal.isCompleted || false,
+          });
+        }
+      });
+      this.setupGoalListeners();
+    } catch (error) {
+      console.error("Error loading goals:", error);
+      this.setupGoalListeners();
+    }
+  }
+
+  // Load schedules
+  async loadSchedules() {
+    try {
+      const schedules = await apiRequest("/schedules");
+      console.log(schedules);
+      const scheduleInputs = document.querySelectorAll(
+        '.schedule-table input[type="text"]'
+      );
+      this.loadedData.schedules.clear();
+      schedules.forEach((schedule) => {
+        const input = Array.from(scheduleInputs).find((input) => {
+          const row = input.closest("tr");
+          const timeCell = row ? row.querySelector("td:first-child") : null;
+          return (
+            timeCell &&
+            timeCell.textContent.trim() === schedule.startTime.slice(0, 5)
+          );
+        });
+        if (input) {
+          input.value = schedule.title || "";
+          input.dataset.id = schedule.id;
+          this.loadedData.schedules.set(schedule.id.toString(), {
+            time: schedule.startTime.slice(0, 5),
+            activity: schedule.title || "",
+          });
+        }
+      });
+      this.setupScheduleListeners();
+    } catch (error) {
+      console.error("Error loading schedules:", error);
+      this.setupScheduleListeners();
+    }
+  }
+
+  // Load notes
+  async loadNotes() {
+    try {
+      const notes = await apiRequest("/notes");
+      const noteArea = document.querySelector(".note-area");
+      this.loadedData.notes.clear();
+      if (notes.length > 0 && noteArea) {
+        noteArea.value = notes[0].content || "";
+        noteArea.dataset.id = notes[0].id;
+        this.loadedData.notes.set(notes[0].id.toString(), {
+          content: notes[0].content || "",
+        });
+      }
+      this.setupNoteListeners();
+    } catch (error) {
+      console.error("Error loading notes:", error);
+      this.setupNoteListeners();
+    }
+  }
+
+  // Set up task listeners
+  setupTaskListeners() {
+    const taskInputs = document.querySelectorAll(
+      '.to-do-list input[type="text"]'
+    );
+    const taskCheckboxes = document.querySelectorAll(
+      '.to-do-list input[type="checkbox"]'
+    );
+
+    taskInputs.forEach((input, index) => {
+      const checkbox = taskCheckboxes[index];
+
+      // Supprimer les anciens listeners
+      input.removeEventListener("input", input._debouncedSave);
+      input.removeEventListener("blur", input._blurHandler);
+      checkbox.removeEventListener("change", checkbox._changeHandler);
+
+      // Créer les nouveaux handlers
+      const debouncedSave = debounce(() => {
+        this.handleTaskChange(input, checkbox);
+      }, AUTO_SAVE_CONFIG.debounceDelay);
+
+      const blurHandler = () => this.handleTaskChange(input, checkbox);
+      const changeHandler = () => this.handleTaskChange(input, checkbox);
+
+      // Stocker les références pour pouvoir les supprimer plus tard
+      input._debouncedSave = debouncedSave;
+      input._blurHandler = blurHandler;
+      checkbox._changeHandler = changeHandler;
+
+      // Ajouter les listeners
+      input.addEventListener("input", debouncedSave);
+      input.addEventListener("blur", blurHandler);
+      checkbox.addEventListener("change", changeHandler);
+    });
+  }
+
+  // Set up goal listeners
+  setupGoalListeners() {
+    const goalInputs = document.querySelectorAll(
+      '.goals-list input[type="text"]'
+    );
+    const goalRadios = document.querySelectorAll(
+      '.goals-list input[type="radio"]'
+    );
+
+    goalInputs.forEach((input, index) => {
+      const radio = goalRadios[index];
+
+      // Supprimer les anciens listeners
+      input.removeEventListener("input", input._debouncedSave);
+      input.removeEventListener("blur", input._blurHandler);
+      radio.removeEventListener("change", radio._changeHandler);
+
+      const debouncedSave = debounce(() => {
+        this.handleGoalChange(input, radio);
+      }, AUTO_SAVE_CONFIG.debounceDelay);
+
+      const blurHandler = () => this.handleGoalChange(input, radio);
+      const changeHandler = () => this.handleGoalChange(input, radio);
+
+      // Stocker les références
+      input._debouncedSave = debouncedSave;
+      input._blurHandler = blurHandler;
+      radio._changeHandler = changeHandler;
+
+      input.addEventListener("input", debouncedSave);
+      input.addEventListener("blur", blurHandler);
+      radio.addEventListener("change", changeHandler);
+    });
+  }
+
+  // Set up schedule listeners
+  setupScheduleListeners() {
+    const scheduleInputs = document.querySelectorAll(
+      '.schedule-table input[type="text"]'
+    );
+
+    scheduleInputs.forEach((input) => {
+      // Supprimer les anciens listeners
+      input.removeEventListener("input", input._debouncedSave);
+      input.removeEventListener("blur", input._blurHandler);
+
+      const debouncedSave = debounce(() => {
+        this.handleScheduleChange(input);
+      }, AUTO_SAVE_CONFIG.debounceDelay);
+
+      const blurHandler = () => this.handleScheduleChange(input);
+
+      // Stocker les références
+      input._debouncedSave = debouncedSave;
+      input._blurHandler = blurHandler;
+
+      input.addEventListener("input", debouncedSave);
+      input.addEventListener("blur", blurHandler);
+    });
+  }
+
+  // Set up note listeners
+  setupNoteListeners() {
+    const noteArea = document.querySelector(".note-area");
+
+    if (noteArea) {
+      // Supprimer les anciens listeners
+      noteArea.removeEventListener("input", noteArea._debouncedSave);
+      noteArea.removeEventListener("blur", noteArea._blurHandler);
+
+      const debouncedSave = debounce(() => {
+        this.handleNoteChange(noteArea);
+      }, AUTO_SAVE_CONFIG.debounceDelay);
+
+      const blurHandler = () => this.handleNoteChange(noteArea);
+
+      // Stocker les références
+      noteArea._debouncedSave = debouncedSave;
+      noteArea._blurHandler = blurHandler;
+
+      noteArea.addEventListener("input", debouncedSave);
+      noteArea.addEventListener("blur", blurHandler);
+    }
+  }
+
+  // Handle task changes
+  async handleTaskChange(input, checkbox) {
+    const title = input.value.trim();
+    const completed = checkbox.checked;
+    const id = input.dataset.id;
+
+    try {
+      //Delete if field is empty
+      if (!title && id) {
+        await this.deleteTask(id);
+        input.dataset.id = "";
+        checkbox.dataset.id = "";
+        this.loadedData.tasks.delete(id);
+        this.statusManager.showStatus("Task deleted", "success");
+        return;
+      }
+
+      //No content, do nothing
+      if (!title) return;
+
+      const today = new Date().toISOString().split("T")[0];
+      const taskData = {
+        title: title,
+        date: today,
+        isCompleted: completed,
+      };
+
+      //Update existing task
+      if (id) {
+        const existing = this.loadedData.tasks.get(id);
+        if (
+          !existing ||
+          existing.title !== title ||
+          existing.completed !== completed
+        ) {
+          await apiRequest(`/tasks/${id}`, {
+            method: "PUT",
+            body: JSON.stringify(taskData),
+          });
+          this.loadedData.tasks.set(id, { title, completed });
+          this.statusManager.showStatus("Task updated", "success");
+        }
+      }
+      //Create new task
+      else {
+        const newTask = await apiRequest("/tasks", {
+          method: "POST",
+          body: JSON.stringify(taskData),
+        });
+        input.dataset.id = newTask.id;
+        checkbox.dataset.id = newTask.id;
+        this.loadedData.tasks.set(newTask.id.toString(), { title, completed });
+        this.statusManager.showStatus("New task created", "success");
+      }
+    } catch (error) {
+      console.error("Error handling task change:", error);
+      this.statusManager.showStatus("Save error", "error");
+    }
+  }
+
+  // Handle goal changes
+  async handleGoalChange(input, radio) {
+    const title = input.value.trim();
+    const completed = radio.checked;
+    const id = input.dataset.id;
+
+    try {
+      if (!title && id) {
+        await this.deleteGoal(id);
+        input.dataset.id = "";
+        radio.dataset.id = "";
+        this.loadedData.goals.delete(id);
+        this.statusManager.showStatus("Goal deleted", "success");
+        return;
+      }
+
+      if (!title) return;
+
+      const today = new Date().toISOString().split("T")[0];
+      const goalData = {
+        title: title,
+        date: today,
+        isCompleted: completed,
+      };
+
+      if (id) {
+        const existing = this.loadedData.goals.get(id);
+        if (
+          !existing ||
+          existing.title !== title ||
+          existing.completed !== completed
+        ) {
+          await apiRequest(`/goals/${id}`, {
+            method: "PUT",
+            body: JSON.stringify(goalData),
+          });
+          this.loadedData.goals.set(id, { title, completed });
+          this.statusManager.showStatus("Goal updated", "success");
+        }
+      } else {
+        const newGoal = await apiRequest("/goals", {
+          method: "POST",
+          body: JSON.stringify(goalData),
+        });
+        input.dataset.id = newGoal.id;
+        radio.dataset.id = newGoal.id;
+        this.loadedData.goals.set(newGoal.id.toString(), { title, completed });
+        this.statusManager.showStatus("New goal created", "success");
+      }
+    } catch (error) {
+      console.error("Error handling goal change:", error);
+      this.statusManager.showStatus("Save error", "error");
+    }
+  }
+
+  // Handle schedule changes
+  async handleScheduleChange(input) {
+    const activity = input.value.trim();
+    const id = input.dataset.id;
+    const row = input.closest("tr");
+    const timeCell = row ? row.querySelector("td:first-child") : null;
+
+    if (!timeCell) {
+      console.error("Could not find time cell for schedule");
+      return;
+    }
+
+    const time = timeCell.textContent.trim();
+
+    try {
+      //Delete if field is empty
+      if (!activity && id) {
+        await this.deleteSchedule(id);
+        input.dataset.id = "";
+        this.loadedData.schedules.delete(id);
+        this.statusManager.showStatus("Schedule deleted", "success");
+        return;
+      }
+
+      //No content, do nothing
+      const today = new Date().toISOString().split("T")[0];
+      const scheduleData = {
+        title: activity,
+        date: today,
+        startTime: time, // assume time is in HH:mm format
+      };
+
+      //Update existing schedule
+      if (id) {
+        const existing = this.loadedData.schedules.get(id);
+        if (!existing || existing.activity !== activity) {
+          await apiRequest(`/schedules/${id}`, {
+            method: "PUT",
+            body: JSON.stringify(scheduleData),
+          });
+          this.loadedData.schedules.set(id, { time, activity });
+          this.statusManager.showStatus("Schedule updated", "success");
+        }
+      }
+      //Create new schedule
+      else {
+        const newSchedule = await apiRequest("/schedules", {
+          method: "POST",
+          body: JSON.stringify(scheduleData),
+        });
+        input.dataset.id = newSchedule.id;
+        this.loadedData.schedules.set(newSchedule.id.toString(), {
+          time,
+          activity,
+        });
+        this.statusManager.showStatus("New schedule created", "success");
+      }
+    } catch (error) {
+      console.error("Error handling schedule change:", error);
+      this.statusManager.showStatus("Save error", "error");
+    }
+  }
+
+  // Handle note changes
+  async handleNoteChange(noteArea) {
+    const content = noteArea.value.trim();
+    const id = noteArea.dataset.id;
+
+    try {
+      //Delete if field is empty
+      if (!content && id) {
+        await this.deleteNote(id);
+        noteArea.dataset.id = "";
+        this.loadedData.notes.delete(id);
+        this.statusManager.showStatus("Note deleted", "success");
+        return;
+      }
+
+      //No content, do nothing
+      if (!content) return;
+
+      const noteData = {
+        title: "Daily note",
+        content: content,
+        date: new Date().toISOString().split("T")[0],
+      };
+
+      // Update existing note
+      if (id) {
+        const existing = this.loadedData.notes.get(id);
+        if (!existing || existing.content !== content) {
+          await apiRequest(`/notes/${id}`, {
+            method: "PUT",
+            body: JSON.stringify(noteData),
+          });
+          this.loadedData.notes.set(id, { content });
+          this.statusManager.showStatus("Note updated", "success");
+        }
+      }
+      //Create new note
+      else {
+        const newNote = await apiRequest("/notes", {
+          method: "POST",
+          body: JSON.stringify(noteData),
+        });
+        noteArea.dataset.id = newNote.id;
+        this.loadedData.notes.set(newNote.id.toString(), { content });
+        this.statusManager.showStatus("New note created", "success");
+      }
+    } catch (error) {
+      console.error("Error handling note change:", error);
+      this.statusManager.showStatus("Save error", "error");
+    }
+  }
+
+  // Delete methods
+  async deleteTask(id) {
+    await apiRequest(`/tasks/${id}`, { method: "DELETE" });
+  }
+
+  async deleteGoal(id) {
+    await apiRequest(`/goals/${id}`, { method: "DELETE" });
+  }
+
+  async deleteSchedule(id) {
+    await apiRequest(`/schedules/${id}`, { method: "DELETE" });
+  }
+
+  async deleteNote(id) {
+    await apiRequest(`/notes/${id}`, { method: "DELETE" });
+  }
+}
+
+// Fonctions utilitaires existantes (inchangées)
 const showTime = () => {
   const now = new Date();
   let hours = String(now.getHours()).padStart(2, "0");
@@ -31,7 +747,10 @@ const showTime = () => {
   let secondes = String(now.getSeconds()).padStart(2, "0");
 
   const currentTime = `Hour : ${hours}:${minutes}:${secondes}`;
-  document.getElementById("time").textContent = currentTime;
+  const timeElement = document.getElementById("time");
+  if (timeElement) {
+    timeElement.textContent = currentTime;
+  }
 };
 
 const createCalendar = (elem, year, month) => {
@@ -80,285 +799,8 @@ const getDay = (date) => {
   return day - 1;
 };
 
-const loadTasks = async () => {
-  try {
-    const tasks = await apiRequest("/tasks");
-    const taskInputs = document.querySelectorAll(
-      '.to-do-list input[type="text"]'
-    );
-    const taskCheckboxes = document.querySelectorAll(
-      '.to-do-list input[type="checkbox"]'
-    );
-
-    tasks.forEach((task, index) => {
-      if (index < taskInputs.length) {
-        taskInputs[index].value = task.title || "";
-        taskInputs[index].dataset.id = task.id;
-        taskCheckboxes[index].checked = task.completed || false;
-        taskCheckboxes[index].dataset.id = task.id;
-      }
-    });
-  } catch (error) {
-    console.error("Erreur lors du chargement des tâches:", error);
-  }
-};
-
-const loadGoals = async () => {
-  try {
-    const goals = await apiRequest("/goals");
-    const goalInputs = document.querySelectorAll(
-      '.goals-list input[type="text"]'
-    );
-    const goalRadios = document.querySelectorAll(
-      '.goals-list input[type="radio"]'
-    );
-
-    goals.forEach((goal, index) => {
-      if (index < goalInputs.length) {
-        goalInputs[index].value = goal.title || "";
-        goalInputs[index].dataset.id = goal.id;
-        goalRadios[index].checked = goal.completed || false;
-        goalRadios[index].dataset.id = goal.id;
-      }
-    });
-  } catch (error) {
-    console.error("Erreur lors du chargement des objectifs:", error);
-  }
-};
-
-const loadSchedules = async () => {
-  try {
-    const schedules = await apiRequest("/schedules");
-    const scheduleInputs = document.querySelectorAll(
-      '.schedule-table input[type="text"]'
-    );
-
-    schedules.forEach((schedule) => {
-      const timeSlot = schedule.time;
-      const input = Array.from(scheduleInputs).find((input) => {
-        const row = input.closest("tr");
-        const timeCell = row.querySelector("td:first-child");
-        return timeCell && timeCell.textContent === timeSlot;
-      });
-
-      if (input) {
-        input.value = schedule.activity || "";
-        input.dataset.id = schedule.id;
-      }
-    });
-  } catch (error) {
-    console.error("Erreur lors du chargement du planning:", error);
-  }
-};
-
-const loadNotes = async () => {
-  try {
-    const notes = await apiRequest("/notes");
-    const noteArea = document.querySelector(".note-area");
-
-    if (notes.length > 0 && noteArea) {
-      noteArea.value = notes[0].content || "";
-      noteArea.dataset.id = notes[0].id;
-    }
-  } catch (error) {
-    console.error("Erreur lors du chargement des notes:", error);
-  }
-};
-
-const saveTasks = async () => {
-  const today = new Date().toISOString().split("T")[0];
-  const taskInputs = document.querySelectorAll(
-    '.to-do-list input[type="text"]'
-  );
-  const taskCheckboxes = document.querySelectorAll(
-    '.to-do-list input[type="checkbox"]'
-  );
-
-  for (let i = 0; i < taskInputs.length; i++) {
-    const input = taskInputs[i];
-    const checkbox = taskCheckboxes[i];
-    const title = input.value.trim();
-
-    if (title) {
-      const taskData = {
-        title: title,
-        date: today,
-        isCompleted: checkbox.checked,
-      };
-
-      try {
-        if (input.dataset.id) {
-          // Mise à jour
-          await apiRequest(`/tasks/${input.dataset.id}`, {
-            method: "PUT",
-            body: JSON.stringify(taskData),
-          });
-        } else {
-          // Création
-          const newTask = await apiRequest("/tasks", {
-            method: "POST",
-            body: JSON.stringify(taskData),
-          });
-          input.dataset.id = newTask.id;
-          checkbox.dataset.id = newTask.id;
-        }
-      } catch (error) {
-        console.error("Error saving task:", error);
-      }
-    }
-  }
-};
-
-const saveGoals = async () => {
-  const today = new Date().toISOString().split("T")[0];
-  const goalInputs = document.querySelectorAll(
-    '.goals-list input[type="text"]'
-  );
-  const goalRadios = document.querySelectorAll(
-    '.goals-list input[type="radio"]'
-  );
-
-  for (let i = 0; i < goalInputs.length; i++) {
-    const input = goalInputs[i];
-    const radio = goalRadios[i];
-    const title = input.value.trim();
-
-    if (title) {
-      const goalData = {
-        title: title,
-        date: today,
-        isCompleted: radio.checked,
-      };
-
-      try {
-        if (input.dataset.id) {
-          // Mise à jour
-          await apiRequest(`/goals/${input.dataset.id}`, {
-            method: "PUT",
-            body: JSON.stringify(goalData),
-          });
-        } else {
-          // Création
-          const newGoal = await apiRequest("/goals", {
-            method: "POST",
-            body: JSON.stringify(goalData),
-          });
-          input.dataset.id = newGoal.id;
-          radio.dataset.id = newGoal.id;
-        }
-      } catch (error) {
-        console.error("Error saving goal:", error);
-      }
-    }
-  }
-};
-
-const saveSchedules = async () => {
-  const scheduleInputs = document.querySelectorAll(
-    '.schedule-table input[type="text"]'
-  );
-
-  for (const input of scheduleInputs) {
-    const activity = input.value.trim();
-    const row = input.closest("tr");
-    const timeCell = row.querySelector("td:first-child");
-    const time = timeCell.textContent;
-
-    if (activity) {
-      const scheduleData = {
-        time: time,
-        activity: activity,
-      };
-
-      try {
-        if (input.dataset.id) {
-          // Mise à jour
-          await apiRequest(`/schedules/${input.dataset.id}`, {
-            method: "PUT",
-            body: JSON.stringify(scheduleData),
-          });
-        } else {
-          // Création
-          const newSchedule = await apiRequest("/schedules", {
-            method: "POST",
-            body: JSON.stringify(scheduleData),
-          });
-          input.dataset.id = newSchedule.id;
-        }
-      } catch (error) {
-        console.error("Error saving schedule:", error);
-      }
-    }
-  }
-};
-
-const saveNotes = async () => {
-  const noteArea = document.querySelector(".note-area");
-  const content = noteArea.value.trim();
-
-  if (content) {
-    const noteData = {
-      content: content,
-    };
-
-    try {
-      if (noteArea.dataset.id) {
-        // Mise à jour
-        await apiRequest(`/notes/${noteArea.dataset.id}`, {
-          method: "PUT",
-          body: JSON.stringify(noteData),
-        });
-      } else {
-        // Création
-        const newNote = await apiRequest("/notes", {
-          method: "POST",
-          body: JSON.stringify(noteData),
-        });
-        noteArea.dataset.id = newNote.id;
-      }
-    } catch (error) {
-      console.error("Error saving note:", error);
-    }
-  }
-};
-
-// Fonction principale de sauvegarde
-const saveAllData = async () => {
-  const saveBtn = document.getElementById("saveBtn");
-  saveBtn.textContent = "Saving...";
-  saveBtn.disabled = true;
-
-  try {
-    await Promise.all([saveTasks(), saveGoals(), saveSchedules(), saveNotes()]);
-
-    saveBtn.textContent = "Saved ✓";
-    setTimeout(() => {
-      saveBtn.textContent = "Save";
-      saveBtn.disabled = false;
-    }, 2000);
-  } catch (error) {
-    console.error("Error saving data:", error);
-    saveBtn.textContent = "Error";
-    setTimeout(() => {
-      saveBtn.textContent = "Save";
-      saveBtn.disabled = false;
-    }, 2000);
-  }
-};
-
-// Fonction de chargement initial
-const loadAllData = async () => {
-  try {
-    await Promise.all([loadTasks(), loadGoals(), loadSchedules(), loadNotes()]);
-    console.log("Data loaded successfully");
-  } catch (error) {
-    console.error("Error loading data:", error);
-  }
-};
-
-// Gestion de la météo (inchangée)
 const loadWeather = () => {
-  const apiKey = "99584a46ac5b619b26340817447b555e";
+  const apiKey = "YOUR_API_KEY";
   const city = "Mons";
   const weatherDiv = document.getElementById("weather");
 
@@ -392,6 +834,7 @@ const loadWeather = () => {
 };
 
 function movePapillon(container) {
+  if (!container) return;
   const screenWidth = window.innerWidth;
   const screenHeight = window.innerHeight;
   const containerWidth = container.offsetWidth;
@@ -404,12 +847,20 @@ function movePapillon(container) {
 }
 
 function startFlight(container, interval) {
+  if (!container) return;
   movePapillon(container);
   setInterval(() => movePapillon(container), interval);
 }
 
-// Initialisation au chargement de la page
+// Initialisation globale
+let autoSaveManager;
+
 document.addEventListener("DOMContentLoaded", async () => {
+  console.log("Initialisation de l'application...");
+
+  // Initialiser le gestionnaire de sauvegarde automatique
+  autoSaveManager = new AutoSaveManager();
+
   // Démarrer l'horloge
   showTime();
   setInterval(showTime, 1000);
@@ -430,22 +881,26 @@ document.addEventListener("DOMContentLoaded", async () => {
   const container3 = document.getElementById("papillon3");
 
   if (container1 && container2 && container3) {
-    container1.querySelector(".papillon").style.animationDuration = "0.7s";
-    container2.querySelector(".papillon").style.animationDuration = "0.5s";
-    container3.querySelector(".papillon").style.animationDuration = "0.6s";
+    const papillon1 = container1.querySelector(".papillon");
+    const papillon2 = container2.querySelector(".papillon");
+    const papillon3 = container3.querySelector(".papillon");
+
+    if (papillon1) papillon1.style.animationDuration = "0.7s";
+    if (papillon2) papillon2.style.animationDuration = "0.5s";
+    if (papillon3) papillon3.style.animationDuration = "0.6s";
 
     startFlight(container1, 12000);
     startFlight(container2, 14000);
     startFlight(container3, 16000);
   }
 
-  // Charger les données depuis l'API
-  await loadAllData();
+  // Charger toutes les données et configurer les listeners automatiques
+  await autoSaveManager.loadAllData();
 
-  // Configurer le bouton de sauvegarde
+  // Supprimer l'ancien bouton de sauvegarde s'il existe
   const saveBtn = document.getElementById("saveBtn");
   if (saveBtn) {
-    saveBtn.addEventListener("click", saveAllData);
+    saveBtn.style.display = "none";
   }
 
   // Définir la date actuelle dans l'input date
@@ -455,4 +910,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     const dateString = today.toISOString().split("T")[0];
     dateInput.value = dateString;
   }
+
+  console.log("Application initialisée avec succès!");
 });
