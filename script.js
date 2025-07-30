@@ -1,10 +1,10 @@
 // API configuration
 const API_BASE_URL = "http://localhost:3000";
-const USE_MOCK_API = false; // Set to true to use mock API
+const USE_MOCK_API = false; 
 
 // Auto-save config
 const AUTO_SAVE_CONFIG = {
-  debounceDelay: 1000, // Delay before auto-save (ms)
+  debounceDelay: 1000, 
   retryAttempts: 3,
   retryDelay: 1000,
 };
@@ -224,26 +224,169 @@ class AutoSaveManager {
       schedules: new Map(),
       notes: new Map(),
     };
+    this.currentDate = this.getTodayString();
+    this.isPastDate = false;
   }
 
-  // Load all data (tasks, goals, schedules, notes)
-  async loadAllData() {
+  getTodayString() {
+    return new Date().toISOString().split("T")[0];
+  }
+
+  // Nouvelle méthode pour vérifier si une date est dans le passé
+  isDateInPast(dateString) {
+    const today = new Date();
+    const selectedDate = new Date(dateString);
+    // Comparer seulement les dates (pas les heures)
+    today.setHours(0, 0, 0, 0);
+    selectedDate.setHours(0, 0, 0, 0);
+    return selectedDate < today;
+  }
+
+  // Nouvelle méthode pour définir la date actuelle
+  setCurrentDate(dateString) {
+    this.currentDate = dateString;
+    this.isPastDate = this.isDateInPast(dateString);
+    console.log(`Date sélectionnée: ${dateString}, Dans le passé: ${this.isPastDate}`);
+    
+    // Afficher/masquer l'indicateur de date passée
+    this.togglePastDateIndicator();
+  }
+
+  // Nouvelle méthode pour afficher un indicateur visuel pour les dates passées
+  togglePastDateIndicator() {
+    let indicator = document.getElementById("past-date-indicator");
+    
+    if (!indicator) {
+      indicator = document.createElement("div");
+      indicator.id = "past-date-indicator";
+      indicator.className = "past-date-indicator";
+      indicator.textContent = "📅 Mode consultation - Date passée (lecture seule)";
+      document.body.appendChild(indicator);
+    }
+    
+    if (this.isPastDate) {
+      indicator.classList.add("show");
+    } else {
+      indicator.classList.remove("show");
+    }
+  }
+
+  // Nouvelle méthode pour nettoyer l'interface
+  clearInterface() {
+    // Nettoyer les tâches
+    const taskInputs = document.querySelectorAll('.to-do-list input[type="text"]');
+    const taskCheckboxes = document.querySelectorAll('.to-do-list input[type="checkbox"]');
+    taskInputs.forEach((input, index) => {
+      input.value = "";
+      input.dataset.id = "";
+      taskCheckboxes[index].checked = false;
+      taskCheckboxes[index].dataset.id = "";
+    });
+
+    // Nettoyer les objectifs
+    const goalInputs = document.querySelectorAll('.goals-list input[type="text"]');
+    const goalRadios = document.querySelectorAll('.goals-list input[type="radio"]');
+    goalInputs.forEach((input, index) => {
+      input.value = "";
+      input.dataset.id = "";
+      goalRadios[index].checked = false;
+      goalRadios[index].dataset.id = "";
+    });
+
+    // Nettoyer les horaires
+    const scheduleInputs = document.querySelectorAll('.schedule-table input[type="text"]');
+    scheduleInputs.forEach(input => {
+      input.value = "";
+      input.dataset.id = "";
+    });
+
+    // Nettoyer les notes
+    const noteArea = document.querySelector(".note-area");
+    if (noteArea) {
+      noteArea.value = "";
+      noteArea.dataset.id = "";
+    }
+
+    // Vider les données en mémoire
+    this.loadedData.tasks.clear();
+    this.loadedData.goals.clear();
+    this.loadedData.schedules.clear();
+    this.loadedData.notes.clear();
+  }
+
+  // Nouvelle méthode pour activer/désactiver les champs selon la date
+  toggleFieldsBasedOnDate() {
+    const isReadOnly = this.isPastDate;
+    
+    // Désactiver/activer les tâches
+    const taskInputs = document.querySelectorAll('.to-do-list input[type="text"]');
+    const taskCheckboxes = document.querySelectorAll('.to-do-list input[type="checkbox"]');
+    taskInputs.forEach(input => {
+      input.readOnly = isReadOnly;
+      input.style.opacity = isReadOnly ? "0.6" : "1";
+    });
+    taskCheckboxes.forEach(checkbox => {
+      checkbox.disabled = isReadOnly;
+      checkbox.style.opacity = isReadOnly ? "0.6" : "1";
+    });
+
+    // Désactiver/activer les objectifs
+    const goalInputs = document.querySelectorAll('.goals-list input[type="text"]');
+    const goalRadios = document.querySelectorAll('.goals-list input[type="radio"]');
+    goalInputs.forEach(input => {
+      input.readOnly = isReadOnly;
+      input.style.opacity = isReadOnly ? "0.6" : "1";
+    });
+    goalRadios.forEach(radio => {
+      radio.disabled = isReadOnly;
+      radio.style.opacity = isReadOnly ? "0.6" : "1";
+    });
+
+    // Désactiver/activer les horaires
+    const scheduleInputs = document.querySelectorAll('.schedule-table input[type="text"]');
+    scheduleInputs.forEach(input => {
+      input.readOnly = isReadOnly;
+      input.style.opacity = isReadOnly ? "0.6" : "1";
+    });
+
+    // Désactiver/activer les notes
+    const noteArea = document.querySelector(".note-area");
+    if (noteArea) {
+      noteArea.readOnly = isReadOnly;
+      noteArea.style.opacity = isReadOnly ? "0.6" : "1";
+    }
+  }
+
+  // Load all data (tasks, goals, schedules, notes) pour une date spécifique
+  async loadAllDataForDate(date = null) {
+    const targetDate = date || this.currentDate;
+    this.setCurrentDate(targetDate);
+    
     try {
       this.statusManager.showStatus("Loading data...", "info");
+      this.clearInterface();
+      
       await Promise.all([
-        this.loadTasks(),
-        this.loadGoals(),
-        this.loadSchedules(),
-        this.loadNotes(),
+        this.loadTasks(targetDate),
+        this.loadGoals(targetDate),
+        this.loadSchedules(targetDate),
+        this.loadNotes(targetDate),
       ]);
+      
+      this.toggleFieldsBasedOnDate();
       this.statusManager.showStatus("Data loaded successfully", "success");
-      console.log("All data loaded successfully");
+      console.log(`All data loaded successfully for ${targetDate}`);
     } catch (error) {
       console.error("Error loading data:", error);
       this.statusManager.showStatus("Load error", "error");
       // Even on error, set up listeners so user can still type
       this.setupAllListeners();
     }
+  }
+
+  // Load all data (méthode originale pour la compatibilité)
+  async loadAllData() {
+    await this.loadAllDataForDate(this.currentDate);
   }
 
   // Set up all listeners
@@ -254,17 +397,18 @@ class AutoSaveManager {
     this.setupNoteListeners();
   }
 
-  // Load tasks
-  async loadTasks() {
+  // Load tasks pour une date spécifique
+  async loadTasks(date = null) {
+    const targetDate = date || this.currentDate;
     try {
-      const tasks = await apiRequest("/tasks");
-      const taskInputs = document.querySelectorAll(
-        '.to-do-list input[type="text"]'
-      );
-      const taskCheckboxes = document.querySelectorAll(
-        '.to-do-list input[type="checkbox"]'
-      );
+      const allTasks = await apiRequest("/tasks");
+      // Filtrer les tâches pour la date spécifique
+      const tasks = allTasks.filter(task => task.date === targetDate);
+      
+      const taskInputs = document.querySelectorAll('.to-do-list input[type="text"]');
+      const taskCheckboxes = document.querySelectorAll('.to-do-list input[type="checkbox"]');
       this.loadedData.tasks.clear();
+      
       tasks.forEach((task, index) => {
         if (index < taskInputs.length) {
           taskInputs[index].value = task.title || "";
@@ -285,17 +429,18 @@ class AutoSaveManager {
     }
   }
 
-  // Load goals
-  async loadGoals() {
+  // Load goals pour une date spécifique
+  async loadGoals(date = null) {
+    const targetDate = date || this.currentDate;
     try {
-      const goals = await apiRequest("/goals");
-      const goalInputs = document.querySelectorAll(
-        '.goals-list input[type="text"]'
-      );
-      const goalRadios = document.querySelectorAll(
-        '.goals-list input[type="radio"]'
-      );
+      const allGoals = await apiRequest("/goals");
+      // Filtrer les objectifs pour la date spécifique
+      const goals = allGoals.filter(goal => goal.date === targetDate);
+      
+      const goalInputs = document.querySelectorAll('.goals-list input[type="text"]');
+      const goalRadios = document.querySelectorAll('.goals-list input[type="radio"]');
       this.loadedData.goals.clear();
+      
       goals.forEach((goal, index) => {
         if (index < goalInputs.length) {
           goalInputs[index].value = goal.title || "";
@@ -315,15 +460,18 @@ class AutoSaveManager {
     }
   }
 
-  // Load schedules
-  async loadSchedules() {
+  // Load schedules pour une date spécifique
+  async loadSchedules(date = null) {
+    const targetDate = date || this.currentDate;
     try {
-      const schedules = await apiRequest("/schedules");
+      const allSchedules = await apiRequest("/schedules");
+      // Filtrer les horaires pour la date spécifique
+      const schedules = allSchedules.filter(schedule => schedule.date === targetDate);
+      
       console.log(schedules);
-      const scheduleInputs = document.querySelectorAll(
-        '.schedule-table input[type="text"]'
-      );
+      const scheduleInputs = document.querySelectorAll('.schedule-table input[type="text"]');
       this.loadedData.schedules.clear();
+      
       schedules.forEach((schedule) => {
         const input = Array.from(scheduleInputs).find((input) => {
           const row = input.closest("tr");
@@ -349,12 +497,17 @@ class AutoSaveManager {
     }
   }
 
-  // Load notes
-  async loadNotes() {
+  // Load notes pour une date spécifique
+  async loadNotes(date = null) {
+    const targetDate = date || this.currentDate;
     try {
-      const notes = await apiRequest("/notes");
+      const allNotes = await apiRequest("/notes");
+      // Filtrer les notes pour la date spécifique
+      const notes = allNotes.filter(note => note.date === targetDate);
+      
       const noteArea = document.querySelector(".note-area");
       this.loadedData.notes.clear();
+      
       if (notes.length > 0 && noteArea) {
         noteArea.value = notes[0].content || "";
         noteArea.dataset.id = notes[0].id;
@@ -371,12 +524,8 @@ class AutoSaveManager {
 
   // Set up task listeners
   setupTaskListeners() {
-    const taskInputs = document.querySelectorAll(
-      '.to-do-list input[type="text"]'
-    );
-    const taskCheckboxes = document.querySelectorAll(
-      '.to-do-list input[type="checkbox"]'
-    );
+    const taskInputs = document.querySelectorAll('.to-do-list input[type="text"]');
+    const taskCheckboxes = document.querySelectorAll('.to-do-list input[type="checkbox"]');
 
     taskInputs.forEach((input, index) => {
       const checkbox = taskCheckboxes[index];
@@ -385,6 +534,9 @@ class AutoSaveManager {
       input.removeEventListener("input", input._debouncedSave);
       input.removeEventListener("blur", input._blurHandler);
       checkbox.removeEventListener("change", checkbox._changeHandler);
+
+      // Ne pas ajouter de listeners si c'est une date passée
+      if (this.isPastDate) return;
 
       // Créer les nouveaux handlers
       const debouncedSave = debounce(() => {
@@ -408,12 +560,8 @@ class AutoSaveManager {
 
   // Set up goal listeners
   setupGoalListeners() {
-    const goalInputs = document.querySelectorAll(
-      '.goals-list input[type="text"]'
-    );
-    const goalRadios = document.querySelectorAll(
-      '.goals-list input[type="radio"]'
-    );
+    const goalInputs = document.querySelectorAll('.goals-list input[type="text"]');
+    const goalRadios = document.querySelectorAll('.goals-list input[type="radio"]');
 
     goalInputs.forEach((input, index) => {
       const radio = goalRadios[index];
@@ -422,6 +570,9 @@ class AutoSaveManager {
       input.removeEventListener("input", input._debouncedSave);
       input.removeEventListener("blur", input._blurHandler);
       radio.removeEventListener("change", radio._changeHandler);
+
+      // Ne pas ajouter de listeners si c'est une date passée
+      if (this.isPastDate) return;
 
       const debouncedSave = debounce(() => {
         this.handleGoalChange(input, radio);
@@ -443,14 +594,15 @@ class AutoSaveManager {
 
   // Set up schedule listeners
   setupScheduleListeners() {
-    const scheduleInputs = document.querySelectorAll(
-      '.schedule-table input[type="text"]'
-    );
+    const scheduleInputs = document.querySelectorAll('.schedule-table input[type="text"]');
 
     scheduleInputs.forEach((input) => {
       // Supprimer les anciens listeners
       input.removeEventListener("input", input._debouncedSave);
       input.removeEventListener("blur", input._blurHandler);
+
+      // Ne pas ajouter de listeners si c'est une date passée
+      if (this.isPastDate) return;
 
       const debouncedSave = debounce(() => {
         this.handleScheduleChange(input);
@@ -476,6 +628,9 @@ class AutoSaveManager {
       noteArea.removeEventListener("input", noteArea._debouncedSave);
       noteArea.removeEventListener("blur", noteArea._blurHandler);
 
+      // Ne pas ajouter de listeners si c'est une date passée
+      if (this.isPastDate) return;
+
       const debouncedSave = debounce(() => {
         this.handleNoteChange(noteArea);
       }, AUTO_SAVE_CONFIG.debounceDelay);
@@ -491,8 +646,10 @@ class AutoSaveManager {
     }
   }
 
-  // Handle task changes
+  // Handle task changes (utilise la date actuelle)
   async handleTaskChange(input, checkbox) {
+    if (this.isPastDate) return; // Empêcher les modifications sur les dates passées
+    
     const title = input.value.trim();
     const completed = checkbox.checked;
     const id = input.dataset.id;
@@ -511,10 +668,9 @@ class AutoSaveManager {
       //No content, do nothing
       if (!title) return;
 
-      const today = new Date().toISOString().split("T")[0];
       const taskData = {
         title: title,
-        date: today,
+        date: this.currentDate, // Utiliser la date actuelle au lieu d'aujourd'hui
         isCompleted: completed,
       };
 
@@ -551,8 +707,10 @@ class AutoSaveManager {
     }
   }
 
-  // Handle goal changes
+  // Handle goal changes (utilise la date actuelle)
   async handleGoalChange(input, radio) {
+    if (this.isPastDate) return; // Empêcher les modifications sur les dates passées
+    
     const title = input.value.trim();
     const completed = radio.checked;
     const id = input.dataset.id;
@@ -569,10 +727,9 @@ class AutoSaveManager {
 
       if (!title) return;
 
-      const today = new Date().toISOString().split("T")[0];
       const goalData = {
         title: title,
-        date: today,
+        date: this.currentDate, // Utiliser la date actuelle au lieu d'aujourd'hui
         isCompleted: completed,
       };
 
@@ -606,8 +763,10 @@ class AutoSaveManager {
     }
   }
 
-  // Handle schedule changes
+  // Handle schedule changes (utilise la date actuelle)
   async handleScheduleChange(input) {
+    if (this.isPastDate) return; // Empêcher les modifications sur les dates passées
+    
     const activity = input.value.trim();
     const id = input.dataset.id;
     const row = input.closest("tr");
@@ -631,10 +790,11 @@ class AutoSaveManager {
       }
 
       //No content, do nothing
-      const today = new Date().toISOString().split("T")[0];
+      if (!activity) return;
+
       const scheduleData = {
         title: activity,
-        date: today,
+        date: this.currentDate, // Utiliser la date actuelle au lieu d'aujourd'hui
         startTime: time, // assume time is in HH:mm format
       };
 
@@ -669,8 +829,10 @@ class AutoSaveManager {
     }
   }
 
-  // Handle note changes
+  // Handle note changes (utilise la date actuelle)
   async handleNoteChange(noteArea) {
+    if (this.isPastDate) return; // Empêcher les modifications sur les dates passées
+    
     const content = noteArea.value.trim();
     const id = noteArea.dataset.id;
 
@@ -690,7 +852,7 @@ class AutoSaveManager {
       const noteData = {
         title: "Daily note",
         content: content,
-        date: new Date().toISOString().split("T")[0],
+        date: this.currentDate, // Utiliser la date actuelle au lieu d'aujourd'hui
       };
 
       // Update existing note
@@ -770,10 +932,13 @@ const createCalendar = (elem, year, month) => {
       d.getDate() === today.getDate() &&
       d.getMonth() === today.getMonth() &&
       d.getFullYear() === today.getFullYear();
+    
+    // Créer une date cliquable avec data-date
+    const dateString = d.toISOString().split('T')[0];
     if (isToday) {
-      table += `<td class="today">${d.getDate()}</td>`;
+      table += `<td class="today calendar-date" data-date="${dateString}" style="cursor: pointer;">${d.getDate()}</td>`;
     } else {
-      table += `<td>${d.getDate()}</td>`;
+      table += `<td class="calendar-date" data-date="${dateString}" style="cursor: pointer;">${d.getDate()}</td>`;
     }
 
     if (getDay(d) % 7 == 6) {
@@ -791,6 +956,30 @@ const createCalendar = (elem, year, month) => {
 
   table += "</tr></table>";
   elem.innerHTML = table;
+
+  // Ajouter les event listeners pour les dates cliquables
+  const dateElements = elem.querySelectorAll('.calendar-date');
+  dateElements.forEach(dateElement => {
+    dateElement.addEventListener('click', async (e) => {
+      const selectedDate = e.target.dataset.date;
+      console.log(`Date sélectionnée depuis le calendrier: ${selectedDate}`);
+      
+      // Mettre à jour l'input date
+      const dateInput = document.getElementById("date");
+      if (dateInput) {
+        dateInput.value = selectedDate;
+      }
+      
+      // Charger les données pour cette date
+      if (autoSaveManager) {
+        await autoSaveManager.loadAllDataForDate(selectedDate);
+      }
+      
+      // Retirer la classe 'today' de tous les éléments et l'ajouter au sélectionné
+      dateElements.forEach(el => el.classList.remove('selected-date'));
+      e.target.classList.add('selected-date');
+    });
+  });
 };
 
 const getDay = (date) => {
@@ -800,7 +989,7 @@ const getDay = (date) => {
 };
 
 const loadWeather = () => {
-  const apiKey = "YOUR_API_KEY";
+  const apiKey = "99584a46ac5b619b26340817447b555e";
   const city = "Mons";
   const weatherDiv = document.getElementById("weather");
 
@@ -894,21 +1083,41 @@ document.addEventListener("DOMContentLoaded", async () => {
     startFlight(container3, 16000);
   }
 
-  // Charger toutes les données et configurer les listeners automatiques
-  await autoSaveManager.loadAllData();
-
-  // Supprimer l'ancien bouton de sauvegarde s'il existe
-  const saveBtn = document.getElementById("saveBtn");
-  if (saveBtn) {
-    saveBtn.style.display = "none";
-  }
-
   // Définir la date actuelle dans l'input date
   const dateInput = document.getElementById("date");
   if (dateInput) {
     const today = new Date();
     const dateString = today.toISOString().split("T")[0];
     dateInput.value = dateString;
+    
+    // Ajouter un event listener pour l'input date
+    dateInput.addEventListener('change', async (e) => {
+      const selectedDate = e.target.value;
+      console.log(`Date sélectionnée depuis l'input: ${selectedDate}`);
+      
+      // Charger les données pour cette date
+      if (autoSaveManager) {
+        await autoSaveManager.loadAllDataForDate(selectedDate);
+      }
+      
+      // Mettre à jour la sélection visuelle dans le calendrier
+      const calendarDates = document.querySelectorAll('.calendar-date');
+      calendarDates.forEach(dateElement => {
+        dateElement.classList.remove('selected-date');
+        if (dateElement.dataset.date === selectedDate) {
+          dateElement.classList.add('selected-date');
+        }
+      });
+    });
+  }
+
+  // Charger toutes les données pour aujourd'hui et configurer les listeners automatiques
+  await autoSaveManager.loadAllData();
+
+  // Supprimer l'ancien bouton de sauvegarde s'il existe
+  const saveBtn = document.getElementById("saveBtn");
+  if (saveBtn) {
+    saveBtn.style.display = "none";
   }
 
   console.log("Application initialisée avec succès!");

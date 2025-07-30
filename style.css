@@ -269,7 +269,7 @@ body {
 .note {
   width: 100%;
   max-width: 500px;
-  margin-top: 20px;
+  margin-top: 10px;
 }
 
 .note-title {
@@ -283,7 +283,7 @@ body {
 
 .note-area {
   width: 100%;
-  height: 200px;
+  height: 240px;
   resize: none;
   border: 2px solid #ccc;
   padding: 10px;
