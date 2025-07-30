@@ -1,6 +1,9 @@
-// API configuration
+// ─── App configuration ────────────────────────────────────────────────────────
 const API_BASE_URL = "http://localhost:3000";
-const USE_MOCK_API = false;
+const USE_MOCK_API = false; // set to true to run without a backend
+
+const WEATHER_CITY = "Mons";
+const WEATHER_API_KEY = "YOUR_API_KEY"; // https://openweathermap.org/api
 
 const AUTO_SAVE_CONFIG = {
   debounceDelay: 1000,
@@ -112,6 +115,7 @@ const apiRequest = async (endpoint, options = {}, retryCount = 0) => {
       return apiRequest(endpoint, options, retryCount + 1);
     }
 
+
     throw error;
   }
 };
@@ -124,7 +128,6 @@ const mockApiRequest = async (endpoint, options = {}) => {
   const type = parts[0];
   const id = parts[1];
 
-  console.log(`[MOCK API] ${method} ${endpoint}`, body);
 
   switch (method) {
     case "GET":
@@ -216,7 +219,7 @@ class AutoSaveManager {
       notes: new Map(),
     };
     this.currentDate = this.getTodayString();
-    this.isPastDate = false;
+    this.isPastDate  = false;
   }
 
   getTodayString() {
@@ -236,7 +239,6 @@ class AutoSaveManager {
   setCurrentDate(dateString) {
     this.currentDate = dateString;
     this.isPastDate = this.isDateInPast(dateString);
-    console.log(`Selected date: ${dateString}, In past: ${this.isPastDate}`);
 
     this.togglePastDateIndicator();
   }
@@ -379,8 +381,7 @@ class AutoSaveManager {
       ]);
 
       this.toggleFieldsBasedOnDate();
-      this.statusManager.showStatus("Data loaded successfully", "success");
-      console.log(`All data loaded successfully for ${targetDate}`);
+      this.statusManager.showStatus("Data loaded", "success");
     } catch (error) {
       console.error("Error loading data:", error);
       this.statusManager.showStatus("Load error", "error");
@@ -473,7 +474,6 @@ class AutoSaveManager {
         (schedule) => schedule.date === targetDate
       );
 
-      console.log(schedules);
       const scheduleInputs = document.querySelectorAll(
         '.schedule-table input[type="text"]'
       );
@@ -943,8 +943,6 @@ const createCalendar = (elem, year, month) => {
   dateElements.forEach((dateElement) => {
     dateElement.addEventListener("click", async (e) => {
       const selectedDate = e.target.dataset.date;
-      console.log(`Date selected from calendar: ${selectedDate}`);
-
       // Update date input
       const dateInput = document.getElementById("date");
       if (dateInput) {
@@ -970,13 +968,11 @@ const getDay = (date) => {
 };
 
 const loadWeather = () => {
-  const apiKey = "99584a46ac5b619b26340817447b555e";
-  const city = "Mons";
   const weatherDiv = document.getElementById("weather");
 
-  if (weatherDiv && apiKey) {
+  if (weatherDiv && WEATHER_API_KEY !== "YOUR_API_KEY") {
     fetch(
-      `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}&units=metric`
+      `https://api.openweathermap.org/data/2.5/weather?q=${WEATHER_CITY}&appid=${WEATHER_API_KEY}&units=metric`
     )
       .then((response) => response.json())
       .then((data) => {
@@ -1026,9 +1022,6 @@ function startFlight(container, interval) {
 let autoSaveManager;
 
 document.addEventListener("DOMContentLoaded", async () => {
-  console.log("Initializing application...");
-
-  // Initialize auto-save manager
   autoSaveManager = new AutoSaveManager();
 
   // Start clock
@@ -1074,8 +1067,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     // Add event listener for date input
     dateInput.addEventListener("change", async (e) => {
       const selectedDate = e.target.value;
-      console.log(`Date selected from input: ${selectedDate}`);
-
       // Load data for this date
       if (autoSaveManager) {
         await autoSaveManager.loadAllDataForDate(selectedDate);
@@ -1092,14 +1083,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
-  // Load all data for today and setup automatic listeners
   await autoSaveManager.loadAllData();
 
-  // Hide old save button if it exists
   const saveBtn = document.getElementById("saveBtn");
-  if (saveBtn) {
-    saveBtn.style.display = "none";
-  }
-
-  console.log("Application initialized successfully!");
+  if (saveBtn) saveBtn.style.display = "none";
 });
