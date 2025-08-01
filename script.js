@@ -970,7 +970,7 @@ const getDay = (date) => {
 };
 
 const loadWeather = () => {
-  const apiKey = "99584a46ac5b619b26340817447b555e";
+  const apiKey = "<YOUR_API_KEY>";
   const city = "Mons";
   const weatherDiv = document.getElementById("weather");
 
