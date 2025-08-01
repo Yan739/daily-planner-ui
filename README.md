@@ -19,18 +19,21 @@ Ce projet a pour but de créer une application web qui permet à l’utilisateur
 
 ### Structure des fichiers
 
----
+```
 /daily-planner/
 │
-├── index.html        → Structure HTML principale
-├── style.css         → Feuille de styles pour le design
-├── script.js         → Logique fonctionnelle (JavaScript)
-└── assets/           → Images, icônes météo, illustrations
----
+├── index.html          # Structure HTML principale
+├── style.css           # Feuille de styles pour le design
+├── script.js           # Logique fonctionnelle (JavaScript)
+└── assets/             # Images, icônes météo, illustrations
+    ├── icons/
+    └── images/
+```
 
 ## 3. Diagrammes PlantUML
 
 ### A. Diagramme de cas d'utilisation
+
 <img width="1227" height="215" alt="image" src="https://github.com/user-attachments/assets/c0301eb6-d90d-4ac9-8ac1-c9876f5b3b57" />
 
 B. Diagramme de classes
@@ -60,6 +63,7 @@ cd daily-planner
 ---
 
 ## 6. Auteur
+
 Projet réalisé par [Yann NGATEU]
 Dans le cadre d’un projet personnel ou scolaire.
 
