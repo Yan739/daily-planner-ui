@@ -2,7 +2,6 @@
 const API_BASE_URL = "http://localhost:3000";
 const USE_MOCK_API = false;
 
-// Auto-save config
 const AUTO_SAVE_CONFIG = {
   debounceDelay: 1000,
   retryAttempts: 3,
@@ -36,13 +35,11 @@ class MockStorage {
     sessionStorage.setItem(`mock_${type}`, JSON.stringify(this.data[type]));
   }
 
-  // GET /endpoint
   async get(type) {
     await this.simulateDelay();
     return [...this.data[type]];
   }
 
-  // POST /endpoint
   async post(type, data) {
     await this.simulateDelay();
     const newItem = {
@@ -54,7 +51,6 @@ class MockStorage {
     return newItem;
   }
 
-  // PUT /endpoint/:id
   async put(type, id, data) {
     await this.simulateDelay();
     const index = this.data[type].findIndex((item) => item.id == id);
@@ -66,7 +62,6 @@ class MockStorage {
     throw new Error("Item not found");
   }
 
-  // DELETE /endpoint/:id
   async delete(type, id) {
     await this.simulateDelay();
     const index = this.data[type].findIndex((item) => item.id == id);
@@ -85,10 +80,9 @@ class MockStorage {
   }
 }
 
-// Global instance of mock storage
 const mockStorage = new MockStorage();
 
-// API request function with mock and retry support
+// API request with mock and retry support
 const apiRequest = async (endpoint, options = {}, retryCount = 0) => {
   if (USE_MOCK_API) {
     return mockApiRequest(endpoint, options);
@@ -122,12 +116,10 @@ const apiRequest = async (endpoint, options = {}, retryCount = 0) => {
   }
 };
 
-// Mock API for testing
 const mockApiRequest = async (endpoint, options = {}) => {
   const method = options.method || "GET";
   const body = options.body ? JSON.parse(options.body) : null;
 
-  // Parse endpoint
   const parts = endpoint.split("/").filter((p) => p);
   const type = parts[0];
   const id = parts[1];
@@ -148,7 +140,6 @@ const mockApiRequest = async (endpoint, options = {}) => {
   }
 };
 
-// Debounce utility to avoid too many API calls
 const debounce = (func, wait) => {
   let timeout;
   return function executedFunction(...args) {
@@ -161,7 +152,7 @@ const debounce = (func, wait) => {
   };
 };
 
-// Status indicator for user
+// Status indicator
 class StatusManager {
   constructor() {
     this.createStatusIndicator();
@@ -232,7 +223,6 @@ class AutoSaveManager {
     return new Date().toISOString().split("T")[0];
   }
 
-  // Nouvelle méthode pour vérifier si une date est dans le passé
   isDateInPast(dateString) {
     const today = new Date();
     const selectedDate = new Date(dateString);
@@ -243,19 +233,14 @@ class AutoSaveManager {
     return selectedDate.getTime() < today.getTime();
   }
 
-  // Nouvelle méthode pour définir la date actuelle
   setCurrentDate(dateString) {
     this.currentDate = dateString;
     this.isPastDate = this.isDateInPast(dateString);
-    console.log(
-      `Date sélectionnée: ${dateString}, Dans le passé: ${this.isPastDate}`
-    );
+    console.log(`Selected date: ${dateString}, In past: ${this.isPastDate}`);
 
-    // Afficher/masquer l'indicateur de date passée
     this.togglePastDateIndicator();
   }
 
-  // Nouvelle méthode pour afficher un indicateur visuel pour les dates passées
   togglePastDateIndicator() {
     let indicator = document.getElementById("past-date-indicator");
 
@@ -263,7 +248,7 @@ class AutoSaveManager {
       indicator = document.createElement("div");
       indicator.id = "past-date-indicator";
       indicator.className = "past-date-indicator";
-      indicator.textContent = "Mode consultation - Date passée (lecture seule)";
+      indicator.textContent = "View Mode - Past Date (Read Only)";
       document.body.appendChild(indicator);
     }
 
@@ -274,9 +259,8 @@ class AutoSaveManager {
     }
   }
 
-  // Nouvelle méthode pour nettoyer l'interface
   clearInterface() {
-    // Nettoyer les tâches
+    // Clear tasks
     const taskInputs = document.querySelectorAll(
       '.to-do-list input[type="text"]'
     );
@@ -290,7 +274,7 @@ class AutoSaveManager {
       taskCheckboxes[index].dataset.id = "";
     });
 
-    // Nettoyer les objectifs
+    // Clear goals
     const goalInputs = document.querySelectorAll(
       '.goals-list input[type="text"]'
     );
@@ -304,7 +288,7 @@ class AutoSaveManager {
       goalRadios[index].dataset.id = "";
     });
 
-    // Nettoyer les horaires
+    // Clear schedules
     const scheduleInputs = document.querySelectorAll(
       '.schedule-table input[type="text"]'
     );
@@ -313,25 +297,24 @@ class AutoSaveManager {
       input.dataset.id = "";
     });
 
-    // Nettoyer les notes
+    // Clear notes
     const noteArea = document.querySelector(".note-area");
     if (noteArea) {
       noteArea.value = "";
       noteArea.dataset.id = "";
     }
 
-    // Vider les données en mémoire
+    // Clear memory data
     this.loadedData.tasks.clear();
     this.loadedData.goals.clear();
     this.loadedData.schedules.clear();
     this.loadedData.notes.clear();
   }
 
-  // Nouvelle méthode pour activer/désactiver les champs selon la date
   toggleFieldsBasedOnDate() {
     const isReadOnly = this.isPastDate;
 
-    // Désactiver/activer les tâches
+    // Tasks
     const taskInputs = document.querySelectorAll(
       '.to-do-list input[type="text"]'
     );
@@ -347,7 +330,7 @@ class AutoSaveManager {
       checkbox.style.opacity = isReadOnly ? "0.6" : "1";
     });
 
-    // Désactiver/activer les objectifs
+    // Goals
     const goalInputs = document.querySelectorAll(
       '.goals-list input[type="text"]'
     );
@@ -363,7 +346,7 @@ class AutoSaveManager {
       radio.style.opacity = isReadOnly ? "0.6" : "1";
     });
 
-    // Désactiver/activer les horaires
+    // Schedules
     const scheduleInputs = document.querySelectorAll(
       '.schedule-table input[type="text"]'
     );
@@ -372,7 +355,7 @@ class AutoSaveManager {
       input.style.opacity = isReadOnly ? "0.6" : "1";
     });
 
-    // Désactiver/activer les notes
+    // Notes
     const noteArea = document.querySelector(".note-area");
     if (noteArea) {
       noteArea.readOnly = isReadOnly;
@@ -380,7 +363,6 @@ class AutoSaveManager {
     }
   }
 
-  // Load all data (tasks, goals, schedules, notes) pour une date spécifique
   async loadAllDataForDate(date = null) {
     const targetDate = date || this.currentDate;
     this.setCurrentDate(targetDate);
@@ -402,17 +384,14 @@ class AutoSaveManager {
     } catch (error) {
       console.error("Error loading data:", error);
       this.statusManager.showStatus("Load error", "error");
-      // Even on error, set up listeners so user can still type
       this.setupAllListeners();
     }
   }
 
-  // Load all data (méthode originale pour la compatibilité)
   async loadAllData() {
     await this.loadAllDataForDate(this.currentDate);
   }
 
-  // Set up all listeners
   setupAllListeners() {
     this.setupTaskListeners();
     this.setupGoalListeners();
@@ -420,12 +399,10 @@ class AutoSaveManager {
     this.setupNoteListeners();
   }
 
-  // Load tasks pour une date spécifique
   async loadTasks(date = null) {
     const targetDate = date || this.currentDate;
     try {
       const allTasks = await apiRequest("/tasks");
-      // Filtrer les tâches pour la date spécifique
       const tasks = allTasks.filter((task) => task.date === targetDate);
 
       const taskInputs = document.querySelectorAll(
@@ -442,7 +419,6 @@ class AutoSaveManager {
           taskInputs[index].dataset.id = task.id;
           taskCheckboxes[index].checked = task.isCompleted || false;
           taskCheckboxes[index].dataset.id = task.id;
-          // Store in memory for comparison
           this.loadedData.tasks.set(task.id.toString(), {
             title: task.title || "",
             completed: task.isCompleted || false,
@@ -456,12 +432,10 @@ class AutoSaveManager {
     }
   }
 
-  // Load goals pour une date spécifique
   async loadGoals(date = null) {
     const targetDate = date || this.currentDate;
     try {
       const allGoals = await apiRequest("/goals");
-      // Filtrer les objectifs pour la date spécifique
       const goals = allGoals.filter((goal) => goal.date === targetDate);
 
       const goalInputs = document.querySelectorAll(
@@ -491,12 +465,10 @@ class AutoSaveManager {
     }
   }
 
-  // Load schedules pour une date spécifique
   async loadSchedules(date = null) {
     const targetDate = date || this.currentDate;
     try {
       const allSchedules = await apiRequest("/schedules");
-      // Filtrer les horaires pour la date spécifique
       const schedules = allSchedules.filter(
         (schedule) => schedule.date === targetDate
       );
@@ -532,12 +504,10 @@ class AutoSaveManager {
     }
   }
 
-  // Load notes pour une date spécifique
   async loadNotes(date = null) {
     const targetDate = date || this.currentDate;
     try {
       const allNotes = await apiRequest("/notes");
-      // Filtrer les notes pour la date spécifique
       const notes = allNotes.filter((note) => note.date === targetDate);
 
       const noteArea = document.querySelector(".note-area");
@@ -557,7 +527,6 @@ class AutoSaveManager {
     }
   }
 
-  // Set up task listeners
   setupTaskListeners() {
     const taskInputs = document.querySelectorAll(
       '.to-do-list input[type="text"]'
@@ -569,15 +538,12 @@ class AutoSaveManager {
     taskInputs.forEach((input, index) => {
       const checkbox = taskCheckboxes[index];
 
-      // Supprimer les anciens listeners
       input.removeEventListener("input", input._debouncedSave);
       input.removeEventListener("blur", input._blurHandler);
       checkbox.removeEventListener("change", checkbox._changeHandler);
 
-      // Ne pas ajouter de listeners si c'est une date passée
       if (this.isPastDate) return;
 
-      // Créer les nouveaux handlers
       const debouncedSave = debounce(() => {
         this.handleTaskChange(input, checkbox);
       }, AUTO_SAVE_CONFIG.debounceDelay);
@@ -585,19 +551,16 @@ class AutoSaveManager {
       const blurHandler = () => this.handleTaskChange(input, checkbox);
       const changeHandler = () => this.handleTaskChange(input, checkbox);
 
-      // Stocker les références pour pouvoir les supprimer plus tard
       input._debouncedSave = debouncedSave;
       input._blurHandler = blurHandler;
       checkbox._changeHandler = changeHandler;
 
-      // Ajouter les listeners
       input.addEventListener("input", debouncedSave);
       input.addEventListener("blur", blurHandler);
       checkbox.addEventListener("change", changeHandler);
     });
   }
 
-  // Set up goal listeners
   setupGoalListeners() {
     const goalInputs = document.querySelectorAll(
       '.goals-list input[type="text"]'
@@ -609,12 +572,10 @@ class AutoSaveManager {
     goalInputs.forEach((input, index) => {
       const radio = goalRadios[index];
 
-      // Supprimer les anciens listeners
       input.removeEventListener("input", input._debouncedSave);
       input.removeEventListener("blur", input._blurHandler);
       radio.removeEventListener("change", radio._changeHandler);
 
-      // Ne pas ajouter de listeners si c'est une date passée
       if (this.isPastDate) return;
 
       const debouncedSave = debounce(() => {
@@ -624,7 +585,6 @@ class AutoSaveManager {
       const blurHandler = () => this.handleGoalChange(input, radio);
       const changeHandler = () => this.handleGoalChange(input, radio);
 
-      // Stocker les références
       input._debouncedSave = debouncedSave;
       input._blurHandler = blurHandler;
       radio._changeHandler = changeHandler;
@@ -635,18 +595,15 @@ class AutoSaveManager {
     });
   }
 
-  // Set up schedule listeners
   setupScheduleListeners() {
     const scheduleInputs = document.querySelectorAll(
       '.schedule-table input[type="text"]'
     );
 
     scheduleInputs.forEach((input) => {
-      // Supprimer les anciens listeners
       input.removeEventListener("input", input._debouncedSave);
       input.removeEventListener("blur", input._blurHandler);
 
-      // Ne pas ajouter de listeners si c'est une date passée
       if (this.isPastDate) return;
 
       const debouncedSave = debounce(() => {
@@ -655,7 +612,6 @@ class AutoSaveManager {
 
       const blurHandler = () => this.handleScheduleChange(input);
 
-      // Stocker les références
       input._debouncedSave = debouncedSave;
       input._blurHandler = blurHandler;
 
@@ -664,16 +620,13 @@ class AutoSaveManager {
     });
   }
 
-  // Set up note listeners
   setupNoteListeners() {
     const noteArea = document.querySelector(".note-area");
 
     if (noteArea) {
-      // Supprimer les anciens listeners
       noteArea.removeEventListener("input", noteArea._debouncedSave);
       noteArea.removeEventListener("blur", noteArea._blurHandler);
 
-      // Ne pas ajouter de listeners si c'est une date passée
       if (this.isPastDate) return;
 
       const debouncedSave = debounce(() => {
@@ -682,7 +635,6 @@ class AutoSaveManager {
 
       const blurHandler = () => this.handleNoteChange(noteArea);
 
-      // Stocker les références
       noteArea._debouncedSave = debouncedSave;
       noteArea._blurHandler = blurHandler;
 
@@ -691,16 +643,14 @@ class AutoSaveManager {
     }
   }
 
-  // Handle task changes (utilise la date actuelle)
   async handleTaskChange(input, checkbox) {
-    if (this.isPastDate) return; // Empêcher les modifications sur les dates passées
+    if (this.isPastDate) return;
 
     const title = input.value.trim();
     const completed = checkbox.checked;
     const id = input.dataset.id;
 
     try {
-      //Delete if field is empty
       if (!title && id) {
         await this.deleteTask(id);
         input.dataset.id = "";
@@ -710,16 +660,14 @@ class AutoSaveManager {
         return;
       }
 
-      //No content, do nothing
       if (!title) return;
 
       const taskData = {
         title: title,
-        date: this.currentDate, // Utiliser la date actuelle au lieu d'aujourd'hui
+        date: this.currentDate,
         isCompleted: completed,
       };
 
-      //Update existing task
       if (id) {
         const existing = this.loadedData.tasks.get(id);
         if (
@@ -734,9 +682,7 @@ class AutoSaveManager {
           this.loadedData.tasks.set(id, { title, completed });
           this.statusManager.showStatus("Task updated", "success");
         }
-      }
-      //Create new task
-      else {
+      } else {
         const newTask = await apiRequest("/tasks", {
           method: "POST",
           body: JSON.stringify(taskData),
@@ -752,9 +698,8 @@ class AutoSaveManager {
     }
   }
 
-  // Handle goal changes (utilise la date actuelle)
   async handleGoalChange(input, radio) {
-    if (this.isPastDate) return; // Empêcher les modifications sur les dates passées
+    if (this.isPastDate) return;
 
     const title = input.value.trim();
     const completed = radio.checked;
@@ -774,7 +719,7 @@ class AutoSaveManager {
 
       const goalData = {
         title: title,
-        date: this.currentDate, // Utiliser la date actuelle au lieu d'aujourd'hui
+        date: this.currentDate,
         isCompleted: completed,
       };
 
@@ -808,9 +753,8 @@ class AutoSaveManager {
     }
   }
 
-  // Handle schedule changes (utilise la date actuelle)
   async handleScheduleChange(input) {
-    if (this.isPastDate) return; // Empêcher les modifications sur les dates passées
+    if (this.isPastDate) return;
 
     const activity = input.value.trim();
     const id = input.dataset.id;
@@ -825,7 +769,6 @@ class AutoSaveManager {
     const time = timeCell.textContent.trim();
 
     try {
-      //Delete if field is empty
       if (!activity && id) {
         await this.deleteSchedule(id);
         input.dataset.id = "";
@@ -834,16 +777,14 @@ class AutoSaveManager {
         return;
       }
 
-      //No content, do nothing
       if (!activity) return;
 
       const scheduleData = {
         title: activity,
-        date: this.currentDate, // Utiliser la date actuelle au lieu d'aujourd'hui
-        startTime: time, // assume time is in HH:mm format
+        date: this.currentDate,
+        startTime: time,
       };
 
-      //Update existing schedule
       if (id) {
         const existing = this.loadedData.schedules.get(id);
         if (!existing || existing.activity !== activity) {
@@ -854,9 +795,7 @@ class AutoSaveManager {
           this.loadedData.schedules.set(id, { time, activity });
           this.statusManager.showStatus("Schedule updated", "success");
         }
-      }
-      //Create new schedule
-      else {
+      } else {
         const newSchedule = await apiRequest("/schedules", {
           method: "POST",
           body: JSON.stringify(scheduleData),
@@ -874,15 +813,13 @@ class AutoSaveManager {
     }
   }
 
-  // Handle note changes (utilise la date actuelle)
   async handleNoteChange(noteArea) {
-    if (this.isPastDate) return; // Empêcher les modifications sur les dates passées
+    if (this.isPastDate) return;
 
     const content = noteArea.value.trim();
     const id = noteArea.dataset.id;
 
     try {
-      //Delete if field is empty
       if (!content && id) {
         await this.deleteNote(id);
         noteArea.dataset.id = "";
@@ -891,16 +828,14 @@ class AutoSaveManager {
         return;
       }
 
-      //No content, do nothing
       if (!content) return;
 
       const noteData = {
         title: "Daily note",
         content: content,
-        date: this.currentDate, // Utiliser la date actuelle au lieu d'aujourd'hui
+        date: this.currentDate,
       };
 
-      // Update existing note
       if (id) {
         const existing = this.loadedData.notes.get(id);
         if (!existing || existing.content !== content) {
@@ -911,9 +846,7 @@ class AutoSaveManager {
           this.loadedData.notes.set(id, { content });
           this.statusManager.showStatus("Note updated", "success");
         }
-      }
-      //Create new note
-      else {
+      } else {
         const newNote = await apiRequest("/notes", {
           method: "POST",
           body: JSON.stringify(noteData),
@@ -946,14 +879,14 @@ class AutoSaveManager {
   }
 }
 
-// Fonctions utilitaires existantes (inchangées)
+// Utility functions
 const showTime = () => {
   const now = new Date();
   let hours = String(now.getHours()).padStart(2, "0");
   let minutes = String(now.getMinutes()).padStart(2, "0");
-  let secondes = String(now.getSeconds()).padStart(2, "0");
+  let seconds = String(now.getSeconds()).padStart(2, "0");
 
-  const currentTime = `Hour : ${hours}:${minutes}:${secondes}`;
+  const currentTime = `Time: ${hours}:${minutes}:${seconds}`;
   const timeElement = document.getElementById("time");
   if (timeElement) {
     timeElement.textContent = currentTime;
@@ -978,8 +911,6 @@ const createCalendar = (elem, year, month) => {
       d.getMonth() === today.getMonth() &&
       d.getFullYear() === today.getFullYear();
 
-    // Créer une date cliquable avec data-date
-    // Dans la boucle while
     const dateString = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
       2,
       "0"
@@ -1007,25 +938,25 @@ const createCalendar = (elem, year, month) => {
   table += "</tr></table>";
   elem.innerHTML = table;
 
-  // Ajouter les event listeners pour les dates cliquables
+  // Add event listeners for clickable dates
   const dateElements = elem.querySelectorAll(".calendar-date");
   dateElements.forEach((dateElement) => {
     dateElement.addEventListener("click", async (e) => {
       const selectedDate = e.target.dataset.date;
-      console.log(`Date sélectionnée depuis le calendrier: ${selectedDate}`);
+      console.log(`Date selected from calendar: ${selectedDate}`);
 
-      // Mettre à jour l'input date
+      // Update date input
       const dateInput = document.getElementById("date");
       if (dateInput) {
         dateInput.value = selectedDate;
       }
 
-      // Charger les données pour cette date
+      // Load data for this date
       if (autoSaveManager) {
         await autoSaveManager.loadAllDataForDate(selectedDate);
       }
 
-      // Retirer la classe 'today' de tous les éléments et l'ajouter au sélectionné
+      // Remove 'today' class from all elements and add to selected
       dateElements.forEach((el) => el.classList.remove("selected-date"));
       e.target.classList.add("selected-date");
     });
@@ -1060,7 +991,7 @@ const loadWeather = () => {
             icon = "assets/sun.png";
           else if (weatherType.includes("hail")) icon = "assets/hail.png";
 
-          weatherDiv.innerHTML = ` Weather in ${city}: ${data.weather[0].main} , ${data.main.temp}°C <img src="${icon}" alt="${data.weather[0].main}" style="height:26px;vertical-align:middle;">`;
+          weatherDiv.innerHTML = `Weather in ${city}: ${data.weather[0].main}, ${data.main.temp}°C <img src="${icon}" alt="${data.weather[0].main}" style="height:26px;vertical-align:middle;">`;
         } else {
           weatherDiv.textContent = "Weather data not available.";
         }
@@ -1072,7 +1003,7 @@ const loadWeather = () => {
   }
 };
 
-function movePapillon(container) {
+function moveButterfly(container) {
   if (!container) return;
   const screenWidth = window.innerWidth;
   const screenHeight = window.innerHeight;
@@ -1087,70 +1018,70 @@ function movePapillon(container) {
 
 function startFlight(container, interval) {
   if (!container) return;
-  movePapillon(container);
-  setInterval(() => movePapillon(container), interval);
+  moveButterfly(container);
+  setInterval(() => moveButterfly(container), interval);
 }
 
-// Initialisation globale
+// Global initialization
 let autoSaveManager;
 
 document.addEventListener("DOMContentLoaded", async () => {
-  console.log("Initialisation de l'application...");
+  console.log("Initializing application...");
 
-  // Initialiser le gestionnaire de sauvegarde automatique
+  // Initialize auto-save manager
   autoSaveManager = new AutoSaveManager();
 
-  // Démarrer l'horloge
+  // Start clock
   showTime();
   setInterval(showTime, 1000);
 
-  // Créer le calendrier
+  // Create calendar
   const calendarElem = document.getElementById("calendar");
   if (calendarElem) {
     const now = new Date();
     createCalendar(calendarElem, now.getFullYear(), now.getMonth() + 1);
   }
 
-  // Charger la météo
+  // Load weather
   loadWeather();
 
-  // Configurer les papillons
+  // Configure butterflies
   const container1 = document.getElementById("papillon1");
   const container2 = document.getElementById("papillon2");
   const container3 = document.getElementById("papillon3");
 
   if (container1 && container2 && container3) {
-    const papillon1 = container1.querySelector(".papillon");
-    const papillon2 = container2.querySelector(".papillon");
-    const papillon3 = container3.querySelector(".papillon");
+    const butterfly1 = container1.querySelector(".papillon");
+    const butterfly2 = container2.querySelector(".papillon");
+    const butterfly3 = container3.querySelector(".papillon");
 
-    if (papillon1) papillon1.style.animationDuration = "0.7s";
-    if (papillon2) papillon2.style.animationDuration = "0.5s";
-    if (papillon3) papillon3.style.animationDuration = "0.6s";
+    if (butterfly1) butterfly1.style.animationDuration = "0.7s";
+    if (butterfly2) butterfly2.style.animationDuration = "0.5s";
+    if (butterfly3) butterfly3.style.animationDuration = "0.6s";
 
     startFlight(container1, 12000);
     startFlight(container2, 14000);
     startFlight(container3, 16000);
   }
 
-  // Définir la date actuelle dans l'input date
+  // Set current date in date input
   const dateInput = document.getElementById("date");
   if (dateInput) {
     const today = new Date();
     const dateString = today.toISOString().split("T")[0];
     dateInput.value = dateString;
 
-    // Ajouter un event listener pour l'input date
+    // Add event listener for date input
     dateInput.addEventListener("change", async (e) => {
       const selectedDate = e.target.value;
-      console.log(`Date sélectionnée depuis l'input: ${selectedDate}`);
+      console.log(`Date selected from input: ${selectedDate}`);
 
-      // Charger les données pour cette date
+      // Load data for this date
       if (autoSaveManager) {
         await autoSaveManager.loadAllDataForDate(selectedDate);
       }
 
-      // Mettre à jour la sélection visuelle dans le calendrier
+      // Update visual selection in calendar
       const calendarDates = document.querySelectorAll(".calendar-date");
       calendarDates.forEach((dateElement) => {
         dateElement.classList.remove("selected-date");
@@ -1161,14 +1092,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
-  // Charger toutes les données pour aujourd'hui et configurer les listeners automatiques
+  // Load all data for today and setup automatic listeners
   await autoSaveManager.loadAllData();
 
-  // Supprimer l'ancien bouton de sauvegarde s'il existe
+  // Hide old save button if it exists
   const saveBtn = document.getElementById("saveBtn");
   if (saveBtn) {
     saveBtn.style.display = "none";
   }
 
-  console.log("Application initialisée avec succès!");
+  console.log("Application initialized successfully!");
 });
