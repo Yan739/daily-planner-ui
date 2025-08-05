@@ -9,151 +9,151 @@
 
 ## Description
 
-Une application web responsive pour organiser efficacement sa journée : tâches, objectifs, météo et emploi du temps, le tout dans une interface moderne et esthétique.
+A responsive web application for efficiently organizing your day: tasks, goals, weather, and schedule, all in a modern and aesthetic interface.
 
-## Objectif du projet
+## Project Objective
 
-Ce projet a pour but de créer une application web qui permet à l'utilisateur de :
+This project aims to create a web application that allows users to:
 
-- Planifier sa journée heure par heure (de 06:00 à 21:00)
-- Noter ses tâches, objectifs, et notes
-- Consulter la météo du jour
-- Visualiser un planning clair et esthétique pour rester productif
+- Plan their day hour by hour (from 6:00 AM to 9:00 PM)
+- Record tasks, goals, and notes
+- Check the day's weather
+- Visualize a clear and aesthetic schedule to stay productive
 
-## Architecture technique
+## Technical Architecture
 
-### Technologies utilisées
+### Technologies Used
 
-- **HTML5** - Structure sémantique de l'application
-- **CSS3** - Styles et design responsive
-- **JavaScript** - Logique fonctionnelle côté client
-- **OpenWeatherMap API** - Données météorologiques
+- **HTML5** - Semantic application structure
+- **CSS3** - Styles and responsive design
+- **JavaScript** - Client-side functional logic
+- **OpenWeatherMap API** - Weather data
 
-### Structure des fichiers
+### File Structure
 
 ```
 /daily-planner/
 │
-├── index.html          # Structure HTML principale
-├── style.css           # Feuille de styles pour le design
-├── script.js           # Logique fonctionnelle (JavaScript)
-└── assets/             # Images, icônes météo, illustrations
+├── index.html          # Main HTML structure
+├── style.css           # Stylesheet for design
+├── script.js           # Functional logic (JavaScript)
+└── assets/             # Images, weather icons, illustrations
     ├── icons/
     └── images/
 ```
 
-## Diagrammes d'architecture
+## Architecture Diagrams
 
-### Diagramme de cas d'utilisation
-<img width="1227" height="215" alt="Diagramme de cas d'utilisation" src="https://github.com/user-attachments/assets/c0301eb6-d90d-4ac9-8ac1-c9876f5b3b57" />
+### Use Case Diagram
+<img width="1227" height="215" alt="Use Case Diagram" src="https://github.com/user-attachments/assets/c0301eb6-d90d-4ac9-8ac1-c9876f5b3b57" />
 
-### Diagramme de classes
-<img width="945" height="289" alt="Diagramme de classes" src="https://github.com/user-attachments/assets/e96b0a8b-0c56-4fb2-8889-4f7969243e6d" />
+### Class Diagram
+<img width="945" height="289" alt="Class Diagram" src="https://github.com/user-attachments/assets/e96b0a8b-0c56-4fb2-8889-4f7969243e6d" />
 
 ## Installation
 
-### Prérequis
+### Prerequisites
 
-- Un navigateur web moderne (Chrome, Firefox, Safari, Edge)
-- VS Code avec l'extension Live Server (recommandé)
+- A modern web browser (Chrome, Firefox, Safari, Edge)
+- VS Code with Live Server extension (recommended)
 
-### Installation locale
+### Local Installation
 
 ```bash
-# Cloner le projet
+# Clone the project
 git clone https://github.com/Yan739/daily-planner.git
 
-# Accéder au dossier
+# Navigate to the folder
 cd daily-planner
 
-# Ouvrir dans VS Code
+# Open in VS Code
 code .
 ```
 
-Ensuite, utilisez Live Server pour lancer l'application (voir section "Développement" ci-dessous).
+Then use Live Server to launch the application (see "Development" section below).
 
 ## Configuration
 
-### Variables d'environnement
+### Environment Variables
 
-Pour utiliser l'API météo, vous devez :
+To use the weather API, you must:
 
-1. Créer un compte sur [OpenWeatherMap](https://openweathermap.org/api)
-2. Obtenir une clé API gratuite
-3. Remplacer `YOUR_API_KEY` dans le fichier `script.js`
+1. Create an account on [OpenWeatherMap](https://openweathermap.org/api)
+2. Get a free API key
+3. Replace `YOUR_API_KEY` in the `script.js` file
 
 ```javascript
 const WEATHER_API_KEY = 'YOUR_API_KEY';
 const WEATHER_API_URL = 'https://api.openweathermap.org/data/2.5/weather';
 ```
 
-## Fonctionnalités
+## Features
 
-### Actuelles
-- Interface utilisateur responsive
-- Planning horaire de 06:00 à 21:00
-- Gestion des tâches et objectifs
-- Prise de notes
-- Affichage de la météo
+### Current
+- Responsive user interface
+- Hourly schedule from 6:00 AM to 9:00 PM
+- Task and goal management
+- Note-taking
+- Weather display
 
-### À venir
-- Sauvegarde automatique via LocalStorage
-- Intégration complète de l'API météo (OpenWeatherMap)
-- Thème clair/sombre
-- Vue hebdomadaire avec navigation par jour
-- Notifications et rappels
-- Export des données en PDF
-- Synchronisation avec le backend API
+### Upcoming
+- Automatic saving via LocalStorage
+- Complete OpenWeatherMap API integration
+- Light/dark theme
+- Weekly view with day navigation
+- Notifications and reminders
+- PDF data export
+- Backend API synchronization
 
-## Utilisation
+## Usage
 
-1. **Ouvrir l'application** dans votre navigateur
-2. **Planifier votre journée** en ajoutant des créneaux horaires
-3. **Ajouter des tâches** et objectifs pour la journée
-4. **Consulter la météo** pour adapter vos activités
-5. **Prendre des notes** au fur et à mesure
+1. **Open the application** in your browser
+2. **Plan your day** by adding time slots
+3. **Add tasks** and goals for the day
+4. **Check the weather** to adapt your activities
+5. **Take notes** as you go
 
-## Développement
+## Development
 
-Pour développer et tester l'application, utilisez l'extension **Live Server** de VS Code :
+To develop and test the application, use VS Code's **Live Server** extension:
 
-1. Ouvrir le projet dans VS Code
-2. Clic droit sur `index.html`
-3. Sélectionner "Open with Live Server"
-4. L'application s'ouvrira automatiquement dans votre navigateur avec rechargement automatique
+1. Open the project in VS Code
+2. Right-click on `index.html`
+3. Select "Open with Live Server"
+4. The application will automatically open in your browser with auto-reload
 
-## Compatibilité
+## Compatibility
 
 - Chrome 70+
 - Firefox 65+
 - Safari 12+
 - Edge 79+
-- Mobile : iOS Safari, Chrome Mobile
+- Mobile: iOS Safari, Chrome Mobile
 
-## Contribution
+## Contributing
 
-Les contributions sont les bienvenues ! N'hésitez pas à :
+Contributions are welcome! Feel free to:
 
-1. Fork le projet
-2. Créer une branche pour votre fonctionnalité (`git checkout -b feature/AmazingFeature`)
-3. Commit vos changements (`git commit -m 'Add some AmazingFeature'`)
-4. Push vers la branche (`git push origin feature/AmazingFeature`)
-5. Ouvrir une Pull Request
+1. Fork the project
+2. Create a branch for your feature (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
-## Auteur
+## Author
 
 **Yann NGATEU**
 
-Projet réalisé dans le cadre d'un projet personnel.
+Project created as part of a personal project.
 
-## Liens utiles
+## Useful Links
 
 - [OpenWeatherMap API](https://openweathermap.org/api)
 - [MDN Web Docs](https://developer.mozilla.org/)
-- [Can I Use](https://caniuse.com/) - Compatibilité des fonctionnalités web
+- [Can I Use](https://caniuse.com/) - Web feature compatibility
 
 ---
 
 <div align="center">
-  Fait avec ❤️ par Yann NGATEU
+  Made with ❤️ by Yann NGATEU
 </div>
