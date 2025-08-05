@@ -68,6 +68,42 @@ th {
   background-color: #e6e6e6;
 }
 
+.selected-date {
+  background-color: #4caf50 !important;
+  color: white !important;
+  font-weight: bold;
+  border-radius: 50%;
+}
+
+input[readonly],
+textarea[readonly] {
+  background-color: #f5f5f5;
+  cursor: not-allowed;
+}
+
+input[disabled],
+input[type="checkbox"][disabled],
+input[type="radio"][disabled] {
+  cursor: not-allowed;
+}
+
+.past-date-indicator {
+  position: fixed;
+  top: 0px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #ff9800;
+  color: white;
+  padding: 3px 100px;
+  font-size: 14px;
+  z-index: 1000;
+  display: none;
+}
+
+.past-date-indicator.show {
+  display: block;
+}
+
 .weather {
   display: flex;
   justify-content: center;
@@ -309,37 +345,4 @@ footer {
 .calendar-date:hover {
   background-color: #e0e0e0;
   font-weight: bold;
-}
-
-.selected-date {
-  background-color: #4CAF50 !important;
-  color: white !important;
-  font-weight: bold;
-  border-radius: 50%;
-}
-
-input[readonly], textarea[readonly] {
-  background-color: #f5f5f5;
-  cursor: not-allowed;
-}
-
-input[disabled], input[type="checkbox"][disabled], input[type="radio"][disabled] {
-  cursor: not-allowed;
-}
-
-.past-date-indicator {
-  position: fixed;
-  top: 0px;
-  left: 50%;
-  transform: translateX(-50%);
-  background-color: #ff9800;
-  color: white;
-  padding: 3px 100px;
-  font-size: 14px;
-  z-index: 1000;
-  display: none;
-}
-
-.past-date-indicator.show {
-  display: block;
 }
