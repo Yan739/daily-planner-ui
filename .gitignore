@@ -1,0 +1,4 @@
+.env
+
+# Claude project instructions (local only, not committed)
+CLAUDE.md
