@@ -403,8 +403,7 @@ class AutoSaveManager {
   async loadTasks(date = null) {
     const targetDate = date || this.currentDate;
     try {
-      const allTasks = await apiRequest("/tasks");
-      const tasks = allTasks.filter((task) => task.date === targetDate);
+      const tasks = await apiRequest(`/tasks?date=${targetDate}`);
 
       const taskInputs = document.querySelectorAll(
         '.to-do-list input[type="text"]'
@@ -436,8 +435,7 @@ class AutoSaveManager {
   async loadGoals(date = null) {
     const targetDate = date || this.currentDate;
     try {
-      const allGoals = await apiRequest("/goals");
-      const goals = allGoals.filter((goal) => goal.date === targetDate);
+      const goals = await apiRequest(`/goals?date=${targetDate}`);
 
       const goalInputs = document.querySelectorAll(
         '.goals-list input[type="text"]'
@@ -451,11 +449,11 @@ class AutoSaveManager {
         if (index < goalInputs.length) {
           goalInputs[index].value = goal.title || "";
           goalInputs[index].dataset.id = goal.id;
-          goalRadios[index].checked = goal.isCompleted || false;
+          goalRadios[index].checked = goal.isAchieved || false;
           goalRadios[index].dataset.id = goal.id;
           this.loadedData.goals.set(goal.id.toString(), {
             title: goal.title || "",
-            completed: goal.isCompleted || false,
+            completed: goal.isAchieved || false,
           });
         }
       });
@@ -469,10 +467,7 @@ class AutoSaveManager {
   async loadSchedules(date = null) {
     const targetDate = date || this.currentDate;
     try {
-      const allSchedules = await apiRequest("/schedules");
-      const schedules = allSchedules.filter(
-        (schedule) => schedule.date === targetDate
-      );
+      const schedules = await apiRequest(`/schedules?date=${targetDate}`);
 
       const scheduleInputs = document.querySelectorAll(
         '.schedule-table input[type="text"]'
@@ -507,8 +502,7 @@ class AutoSaveManager {
   async loadNotes(date = null) {
     const targetDate = date || this.currentDate;
     try {
-      const allNotes = await apiRequest("/notes");
-      const notes = allNotes.filter((note) => note.date === targetDate);
+      const notes = await apiRequest(`/notes?date=${targetDate}`);
 
       const noteArea = document.querySelector(".note-area");
       this.loadedData.notes.clear();
@@ -720,7 +714,7 @@ class AutoSaveManager {
       const goalData = {
         title: title,
         date: this.currentDate,
-        isCompleted: completed,
+        isAchieved: completed,
       };
 
       if (id) {
@@ -987,7 +981,7 @@ const loadWeather = () => {
             icon = "assets/sun.png";
           else if (weatherType.includes("hail")) icon = "assets/hail.png";
 
-          weatherDiv.innerHTML = `Weather in ${city}: ${data.weather[0].main}, ${data.main.temp}°C <img src="${icon}" alt="${data.weather[0].main}" style="height:26px;vertical-align:middle;">`;
+          weatherDiv.innerHTML = `Weather in ${WEATHER_CITY}: ${data.weather[0].main}, ${data.main.temp}°C <img src="${icon}" alt="${data.weather[0].main}" style="height:26px;vertical-align:middle;">`;
         } else {
           weatherDiv.textContent = "Weather data not available.";
         }
